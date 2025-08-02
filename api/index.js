@@ -10,9 +10,6 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, '../public')));
-
 const DATA_FILE = path.join(__dirname, '../data/database.json');
 
 // Utility function to get local date string without timezone issues
@@ -356,10 +353,5 @@ function getWeekNumber(date) {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
   return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
 }
-
-// Serve the main HTML file for any non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
-});
 
 module.exports = app;
