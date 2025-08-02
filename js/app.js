@@ -220,6 +220,16 @@ async function toggleTask(taskId, date, completed) {
             completed
         })
     });
+    
+    // Refresh other views if they are visible
+    const currentTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+    if (currentTab === 'my-progress') {
+        loadMyProgress();
+    } else if (currentTab === 'team-progress') {
+        loadTeamProgress();
+    } else if (currentTab === 'statistics') {
+        loadStatistics();
+    }
 }
 
 async function fetchCompletions(userId) {

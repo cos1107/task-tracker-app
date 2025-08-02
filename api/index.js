@@ -12,6 +12,9 @@ app.use(cookieParser());
 
 const DATA_FILE = path.join(__dirname, '../data/database.json');
 
+// In-memory storage for Vercel serverless environment
+let memoryStore = null;
+
 // Utility function to get local date string without timezone issues
 function getLocalDateString(date = new Date()) {
   const year = date.getFullYear();
@@ -21,10 +24,18 @@ function getLocalDateString(date = new Date()) {
 }
 
 async function loadData() {
+  // If we already have data in memory, use it
+  if (memoryStore) {
+    return memoryStore;
+  }
+
   try {
+    // Try to load from file first (for initial data)
     const data = await fs.readFile(DATA_FILE, 'utf-8');
-    return JSON.parse(data);
+    memoryStore = JSON.parse(data);
+    return memoryStore;
   } catch (error) {
+    // If file doesn't exist, create default data
     const defaultData = {
       users: [
         { id: 1, name: "Cosine", isAdmin: true },
@@ -43,16 +54,22 @@ async function loadData() {
       ],
       completions: []
     };
+    memoryStore = defaultData;
     await saveData(defaultData);
     return defaultData;
   }
 }
 
 async function saveData(data) {
+  // Save to memory store (this persists during the serverless function lifecycle)
+  memoryStore = data;
+  
+  // Try to save to file as well (won't work on Vercel, but useful for local development)
   try {
     await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.error('Error saving data:', error);
+    // Ignore file write errors in serverless environment
+    console.log('File write not available in serverless environment, using memory store');
   }
 }
 
