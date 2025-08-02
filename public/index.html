@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>姐姐妹妹動起來</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>姐姐妹妹動起來</h1>
+            <div id="user-info" class="user-info"></div>
+        </header>
+
+        <div id="user-selection" class="user-selection">
+            <h2>歡迎來到 姐姐妹妹動起來</h2>
+            <p>請選擇您的身份登入：</p>
+            <div id="user-list" class="user-list"></div>
+        </div>
+
+        <div id="main-app" class="main-app hidden">
+            <nav class="nav-tabs">
+                <button class="tab-btn active" data-tab="check-in">每日打卡</button>
+                <button class="tab-btn" data-tab="my-progress">個人紀錄</button>
+                <button class="tab-btn" data-tab="team-progress">團隊打卡牆</button>
+                <button class="tab-btn" data-tab="statistics">成就圖表</button>
+                <button class="tab-btn admin-only hidden" data-tab="admin-config">管理配置</button>
+            </nav>
+
+            <div class="tab-content">
+                <div id="check-in" class="tab-pane active">
+                    <h2>每日任務 - <span id="current-date"></span></h2>
+                    <div id="tasks-list" class="tasks-list"></div>
+                </div>
+
+                <div id="my-progress" class="tab-pane hidden">
+                    <h2>我的每週進度</h2>
+                    <div id="weekly-grid" class="weekly-grid"></div>
+                </div>
+
+                <div id="team-progress" class="tab-pane hidden">
+                    <h2>運動進度</h2>
+                    <div id="team-grid" class="team-grid"></div>
+                </div>
+
+                <div id="statistics" class="tab-pane hidden">
+                    <h2>本月統計</h2>
+                    <div id="stats-container" class="stats-container"></div>
+                </div>
+
+                <div id="admin-config" class="tab-pane hidden">
+                    <h2>管理配置</h2>
+                    <div class="config-container">
+                        <div class="config-section">
+                            <h3>用戶與任務管理</h3>
+                            <div id="user-task-management"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
