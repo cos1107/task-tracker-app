@@ -130,6 +130,7 @@ function showMainApp() {
     
     const userSelection = document.getElementById('user-selection');
     const mainApp = document.getElementById('main-app');
+    const logoutBtn = document.getElementById('logout-btn');
     
     if (!userSelection || !mainApp) {
         console.error('Required elements not found');
@@ -138,6 +139,7 @@ function showMainApp() {
     
     userSelection.classList.add('hidden');
     mainApp.classList.remove('hidden');
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
     
     document.getElementById('user-info').textContent = `登入身份：${currentUser.name}`;
     
@@ -949,4 +951,20 @@ async function deleteTaskFromUser(userId, taskId) {
     
     loadAdminConfigPanel();
     alert('任務已從用戶刪除');
+}
+
+function logout() {
+    localStorage.removeItem('userId');
+    currentUser = null;
+    tasks = [];
+    
+    const userSelection = document.getElementById('user-selection');
+    const mainApp = document.getElementById('main-app');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    if (userSelection) userSelection.classList.remove('hidden');
+    if (mainApp) mainApp.classList.add('hidden');
+    if (logoutBtn) logoutBtn.classList.add('hidden');
+    
+    showUserSelection();
 }
