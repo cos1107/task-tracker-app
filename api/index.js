@@ -371,4 +371,8 @@ function getWeekNumber(date) {
   return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
 }
 
+// Export for Vercel serverless function
 module.exports = app;
+
+// Add this for Vercel compatibility
+module.exports.default = app;
