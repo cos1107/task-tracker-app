@@ -156,4 +156,4 @@ This project is open source and available under the MIT License.
 
 ## Support
 
-For issues or questions, please open an issue on GitHub: https://github.com/cos1107/task-tracker-app/issues# Trigger deploy 西元2025年08月17日 (星期日) 01時10分29秒    
+For issues or questions, please open an issue on GitHub: https://github.com/cos1107/task-tracker-app/issues
