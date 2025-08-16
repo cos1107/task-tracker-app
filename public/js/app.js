@@ -125,8 +125,7 @@ async function selectUser(user) {
     try {
         currentUser = user;
         localStorage.setItem('userId', user.id);
-        tasks = await fetchUserTasks(user.id);
-        console.log('User tasks loaded:', tasks);
+        console.log('User selected:', user);
         showMainApp();
     } catch (error) {
         console.error('Error selecting user:', error);
@@ -198,26 +197,42 @@ async function loadDailyTasks() {
     const tasksList = document.getElementById('tasks-list');
     tasksList.innerHTML = '';
     
-    const today = getLocalDateString();
-    const completions = await fetchCompletions(currentUser.id);
+    if (!currentUser) {
+        console.error('No current user when loading daily tasks');
+        return;
+    }
     
-    tasks.forEach(task => {
-        const taskItem = document.createElement('div');
-        taskItem.className = 'task-item';
+    const today = getLocalDateString();
+    
+    try {
+        // Always fetch fresh user tasks to avoid duplicates
+        const userTasks = await fetchUserTasks(currentUser.id);
+        const completions = await fetchCompletions(currentUser.id);
         
-        const completion = completions.find(c => c.taskId === task.id && c.date === today);
-        const isCompleted = completion ? completion.completed : false;
+        userTasks.forEach(task => {
+            const taskItem = document.createElement('div');
+            taskItem.className = 'task-item';
+            
+            const completion = completions.find(c => c.taskId === task.id && c.date === today);
+            const isCompleted = completion ? completion.completed : false;
+            
+            taskItem.innerHTML = `
+                <label>
+                    <input type="checkbox" ${isCompleted ? 'checked' : ''} 
+                           onchange="toggleTask(${task.id}, '${today}', this.checked)">
+                    <span>${task.name}</span>
+                </label>
+            `;
+            
+            tasksList.appendChild(taskItem);
+        });
         
-        taskItem.innerHTML = `
-            <label>
-                <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                       onchange="toggleTask(${task.id}, '${today}', this.checked)">
-                <span>${task.name}</span>
-            </label>
-        `;
-        
-        tasksList.appendChild(taskItem);
-    });
+        // Update global tasks variable for other functions
+        tasks = userTasks;
+    } catch (error) {
+        console.error('Error loading daily tasks:', error);
+        tasksList.innerHTML = '<p style="color: #e74c3c;">載入任務失敗，請重新整理頁面</p>';
+    }
 }
 
 async function toggleTask(taskId, date, completed) {
