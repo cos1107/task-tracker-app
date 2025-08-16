@@ -296,8 +296,9 @@ async function loadStatistics() {
     
     let html = '';
     
-    // Simple horizontal layout - users displayed in a row
-    html += `<div class="simple-stats-layout">`;
+    // First, display all users in the top row
+    html += `<div class="users-overview-section">`;
+    html += `<div class="users-grid">`;
     
     users.forEach(userStat => {
         const encouragementMessage = userStat.completionRate >= 50 ? 
@@ -306,7 +307,7 @@ async function loadStatistics() {
         const completedDays = userStat.completedDays || userStat.completedTasks || 0;
         const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
         
-        // Build task breakdown display
+        // Build task breakdown display for current month
         let taskBreakdownHtml = '';
         if (userStat.taskBreakdown && userStat.taskBreakdown.length > 0) {
             taskBreakdownHtml = userStat.taskBreakdown.map(task => 
@@ -318,10 +319,10 @@ async function loadStatistics() {
         }
         
         html += `
-            <div class="simple-stat-card">
+            <div class="user-stat-card">
                 <h3>${userStat.userName}</h3>
                 <div class="stat-value">${userStat.completionRate}%</div>
-                <div class="stat-label">整體完成率</div>
+                <div class="stat-label">當月完成率</div>
                 <div class="combo-text">達成任務${completedDays}天${heartIcon}</div>
                 <div class="task-breakdown">
                     ${taskBreakdownHtml}
@@ -331,7 +332,44 @@ async function loadStatistics() {
         `;
     });
     
-    html += `</div>`; // Close simple-stats-layout
+    html += `</div>`; // Close users-grid
+    html += `</div>`; // Close users-overview-section
+    
+    // Then display monthly history below
+    html += `<div class="monthly-history-section">`;
+    html += `<h3>月份歷史記錄</h3>`;
+    
+    yearlyStats.forEach((monthData, index) => {
+        const isCurrentMonth = monthData.isCurrent;
+        const monthClass = isCurrentMonth ? 'current-month' : 'past-month';
+        
+        html += `<div class="month-row ${monthClass}">`;
+        html += `<div class="month-label">
+            <span class="month-name">${monthData.monthName}</span>
+            ${isCurrentMonth ? '<span class="current-badge">當前</span>' : ''}
+        </div>`;
+        
+        html += `<div class="month-users-grid">`;
+        
+        // Display each user's stats for this month in a compact format
+        monthData.users.forEach(userStat => {
+            const completedDays = userStat.completedDays || userStat.completedTasks || 0;
+            const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
+            
+            html += `
+                <div class="month-user-stat">
+                    <div class="user-name">${userStat.userName}</div>
+                    <div class="user-rate">${userStat.completionRate}%${heartIcon}</div>
+                    <div class="user-days">${completedDays}天</div>
+                </div>
+            `;
+        });
+        
+        html += `</div>`; // Close month-users-grid
+        html += `</div>`; // Close month-row
+    });
+    
+    html += `</div>`; // Close monthly-history-section
     
     statsContainer.innerHTML = html;
 }
