@@ -36,6 +36,12 @@ h1 {
 .user-info {
     font-size: 16px;
     color: #666;
+    transition: color 0.2s, opacity 0.2s;
+}
+
+.user-info:hover {
+    color: #3498db;
+    opacity: 0.8;
 }
 
 .hidden {

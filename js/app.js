@@ -139,7 +139,11 @@ function showMainApp() {
     userSelection.classList.add('hidden');
     mainApp.classList.remove('hidden');
     
-    document.getElementById('user-info').textContent = `登入身份：${currentUser.name}`;
+    const userInfo = document.getElementById('user-info');
+    userInfo.textContent = `登入身份：${currentUser.name}`;
+    userInfo.style.cursor = 'pointer';
+    userInfo.title = '點擊登出';
+    userInfo.onclick = logout;
     
     if (currentUser.isAdmin) {
         const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
@@ -147,6 +151,24 @@ function showMainApp() {
     }
     
     loadDailyTasks();
+}
+
+function logout() {
+    if (confirm('確定要登出嗎？')) {
+        localStorage.removeItem('userId');
+        currentUser = null;
+        tasks = [];
+        
+        // Hide admin tab if it was shown
+        const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
+        if (adminConfigTab) adminConfigTab.classList.add('hidden');
+        
+        // Reset to first tab
+        switchTab('check-in');
+        
+        // Show user selection screen
+        showUserSelection();
+    }
 }
 
 function switchTab(tabName) {
