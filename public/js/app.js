@@ -266,6 +266,13 @@ async function loadTeamProgress() {
 }
 
 async function loadStatistics() {
+    // Update the title to show current month
+    const currentMonth = new Date().getMonth() + 1; // JavaScript months are 0-indexed
+    const titleElement = document.getElementById('statistics-title');
+    if (titleElement) {
+        titleElement.textContent = `${currentMonth}月統計`;
+    }
+    
     const statsContainer = document.getElementById('stats-container');
     const stats = await fetch('/api/statistics').then(r => r.json());
     
@@ -277,18 +284,18 @@ async function loadStatistics() {
         const encouragementMessage = userStat.completionRate >= 50 ? 
             '妳真是太棒了!' : '加油...FIGHTING!';
         
-        // Handle undefined combo
-        const comboCount = userStat.combo || 0;
+        // Changed from combo to completedDays - total days completed, not consecutive
+        const completedDays = userStat.completedDays || userStat.completedTasks || 0;
         
-        // NEW REWARD POLICY: Red heart right after combo text if combo > 2
-        const heartIcon = comboCount > 2 ? ' ❤️' : '';
+        // NEW REWARD POLICY: Red heart if completion rate > 50%
+        const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
         
         html += `
             <div class="stat-card">
                 <h3>${userStat.userName}</h3>
                 <div class="stat-value">${userStat.completionRate}%</div>
                 <div class="stat-label">運動完成率</div>
-                <div class="combo-text">連續${comboCount}天運動${heartIcon}</div>
+                <div class="combo-text">達成運動${completedDays}天${heartIcon}</div>
                 <div class="encouragement-message">${encouragementMessage}</div>
             </div>
         `;
@@ -968,4 +975,4 @@ function logout() {
     
     showUserSelection();
 }
-console.log('PUBLIC JavaScript loaded - 2025年08月17日 02時00分00秒');
+console.log('Statistics updated - 西元2025年08月17日 (星期日) 02時10分00秒');
