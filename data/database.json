@@ -739,6 +739,1308 @@
       "date": "2025-08-16",
       "completed": false,
       "week": 33
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-01",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-02",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-03",
+      "completed": false,
+      "week": 27
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-04",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-05",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-06",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-07",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-08",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-09",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-10",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-11",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-12",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-13",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-14",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-15",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-16",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-17",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-18",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-19",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-20",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-21",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-22",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-23",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-24",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-25",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-26",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-27",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-28",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-29",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-30",
+      "completed": false,
+      "week": 31
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-07-31",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-01",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-02",
+      "completed": false,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-03",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-04",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-05",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-06",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-07",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-08",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-09",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-10",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-11",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-12",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-13",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-14",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-15",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-16",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-17",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-18",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-19",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-20",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-21",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-22",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-23",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-24",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-25",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-26",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-27",
+      "completed": false,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-28",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-29",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-30",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-07-31",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-01",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-02",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-03",
+      "completed": false,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-04",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-05",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-06",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-07",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-08",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-09",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-10",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-11",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-12",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-13",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-14",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-15",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-16",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-17",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-18",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-19",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-20",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-21",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-22",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-23",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-24",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-25",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-26",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-27",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-28",
+      "completed": false,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-29",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-30",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 2,
+      "taskId": 2,
+      "date": "2025-07-31",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-01",
+      "completed": false,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-02",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-03",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-04",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-05",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-06",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-07",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-08",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-09",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-10",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-11",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-12",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-13",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-14",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-15",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-16",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-17",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-18",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-19",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-20",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-21",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-22",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-23",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-24",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-25",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-26",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-27",
+      "completed": false,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-28",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-29",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-30",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-07-31",
+      "completed": false,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-01",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-02",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-03",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-04",
+      "completed": false,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-05",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-06",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-07",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-08",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-09",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-10",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-11",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-12",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-13",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-14",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-15",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-16",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-17",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-18",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-19",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-20",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-21",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-22",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-23",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-24",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-25",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-26",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-27",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-28",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-29",
+      "completed": false,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-30",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-07-31",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-01",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-02",
+      "completed": false,
+      "week": 27
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-03",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-04",
+      "completed": true,
+      "week": 27
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-05",
+      "completed": false,
+      "week": 27
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-06",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-07",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-08",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-09",
+      "completed": false,
+      "week": 28
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-10",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-11",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-12",
+      "completed": true,
+      "week": 28
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-13",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-14",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-15",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-16",
+      "completed": false,
+      "week": 29
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-17",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-18",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-19",
+      "completed": true,
+      "week": 29
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-20",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-21",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-22",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-23",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-24",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-25",
+      "completed": false,
+      "week": 30
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-26",
+      "completed": true,
+      "week": 30
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-27",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-28",
+      "completed": false,
+      "week": 31
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-29",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-30",
+      "completed": true,
+      "week": 31
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-07-31",
+      "completed": true,
+      "week": 31
     }
   ]
 }

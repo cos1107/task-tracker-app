@@ -275,53 +275,66 @@ async function loadTeamProgress() {
 }
 
 async function loadStatistics() {
-    // Update the title to show current month
-    const currentMonth = new Date().getMonth() + 1; // JavaScript months are 0-indexed
+    // Update the title to show yearly view
+    const currentYear = new Date().getFullYear();
     const titleElement = document.getElementById('statistics-title');
     if (titleElement) {
-        titleElement.textContent = `${currentMonth}月統計`;
+        titleElement.textContent = `${currentYear}年統計`;
     }
     
     const statsContainer = document.getElementById('stats-container');
-    const stats = await fetch('/api/statistics').then(r => r.json());
-    
-    // Find the highest completion rate
-    const maxRate = Math.max(...stats.map(s => s.completionRate));
+    const yearlyStats = await fetch('/api/statistics').then(r => r.json());
     
     let html = '';
-    stats.forEach(userStat => {
-        const encouragementMessage = userStat.completionRate >= 50 ? 
-            '妳真是太棒了!' : '加油...FIGHTING!';
+    
+    // Display each month's statistics (current month first, then previous months)
+    yearlyStats.forEach((monthData, index) => {
+        const isCurrentMonth = monthData.isCurrent;
+        const monthClass = isCurrentMonth ? 'current-month' : 'past-month';
         
-        // Changed from combo to completedDays - total days completed, not consecutive
-        const completedDays = userStat.completedDays || userStat.completedTasks || 0;
+        html += `<div class="month-section ${monthClass}">`;
+        html += `<div class="month-header">
+            <h2>${monthData.monthName} (${monthData.month}月)</h2>
+            ${isCurrentMonth ? '<span class="current-badge">當前月份</span>' : ''}
+        </div>`;
         
-        // NEW REWARD POLICY: Red heart if completion rate > 50%
-        const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
+        html += `<div class="stats-container">`;
         
-        // Build task breakdown display
-        let taskBreakdownHtml = '';
-        if (userStat.taskBreakdown && userStat.taskBreakdown.length > 0) {
-            taskBreakdownHtml = userStat.taskBreakdown.map(task => 
-                `<div class="task-breakdown-item">
-                    <span class="task-name">${task.taskName}</span>
-                    <span class="task-stats">${task.completedDays}天 (${task.completionRate}%)</span>
-                </div>`
-            ).join('');
-        }
-        
-        html += `
-            <div class="stat-card">
-                <h3>${userStat.userName}</h3>
-                <div class="stat-value">${userStat.completionRate}%</div>
-                <div class="stat-label">整體完成率</div>
-                <div class="combo-text">達成任務${completedDays}天${heartIcon}</div>
-                <div class="task-breakdown">
-                    ${taskBreakdownHtml}
+        // Display each user's stats for this month
+        monthData.users.forEach(userStat => {
+            const encouragementMessage = userStat.completionRate >= 50 ? 
+                '妳真是太棒了!' : '加油...FIGHTING!';
+            
+            const completedDays = userStat.completedDays || userStat.completedTasks || 0;
+            const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
+            
+            // Build task breakdown display
+            let taskBreakdownHtml = '';
+            if (userStat.taskBreakdown && userStat.taskBreakdown.length > 0) {
+                taskBreakdownHtml = userStat.taskBreakdown.map(task => 
+                    `<div class="task-breakdown-item">
+                        <span class="task-name">${task.taskName}</span>
+                        <span class="task-stats">${task.completedDays}天 (${task.completionRate}%)</span>
+                    </div>`
+                ).join('');
+            }
+            
+            html += `
+                <div class="stat-card">
+                    <h3>${userStat.userName}</h3>
+                    <div class="stat-value">${userStat.completionRate}%</div>
+                    <div class="stat-label">整體完成率</div>
+                    <div class="combo-text">達成任務${completedDays}天${heartIcon}</div>
+                    <div class="task-breakdown">
+                        ${taskBreakdownHtml}
+                    </div>
+                    <div class="encouragement-message">${encouragementMessage}</div>
                 </div>
-                <div class="encouragement-message">${encouragementMessage}</div>
-            </div>
-        `;
+            `;
+        });
+        
+        html += `</div>`; // Close stats-container
+        html += `</div>`; // Close month-section
     });
     
     statsContainer.innerHTML = html;

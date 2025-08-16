@@ -1178,3 +1178,92 @@ h1 {
         margin-bottom: 4px;
     }
 }
+
+/* Monthly statistics sections */
+.month-section {
+    margin-bottom: 40px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.month-section.current-month {
+    border: 3px solid #3498db;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.05) 0%, rgba(52, 152, 219, 0.1) 100%);
+}
+
+.month-section.past-month {
+    border: 1px solid #e9ecef;
+    background: #fafafa;
+}
+
+.month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    margin-bottom: 0;
+}
+
+.month-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: 600;
+}
+
+.current-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.past-month .month-header {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+}
+
+.month-section .stats-container {
+    padding: 25px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+/* Adjust stat cards within monthly sections */
+.month-section .stat-card {
+    background-color: white;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.current-month .stat-card {
+    border-left: 4px solid #3498db;
+}
+
+.past-month .stat-card {
+    border-left: 4px solid #95a5a6;
+    opacity: 0.9;
+}
+
+/* Mobile responsive for monthly sections */
+@media (max-width: 768px) {
+    .month-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .month-header h2 {
+        font-size: 1.3em;
+    }
+    
+    .month-section .stats-container {
+        padding: 15px;
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
