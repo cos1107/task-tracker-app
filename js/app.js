@@ -313,8 +313,8 @@ async function loadStatistics() {
         // Changed from combo to completedDays - total days completed, not consecutive
         const completedDays = userStat.completedDays || userStat.completedTasks || 0;
         
-        // NEW REWARD POLICY: Red heart if completed more than 2 days
-        const heartIcon = completedDays > 2 ? ' ❤️' : '';
+        // NEW REWARD POLICY: Red heart if completion rate > 50%
+        const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
         
         html += `
             <div class="stat-card">
