@@ -251,32 +251,57 @@ app.get('/api/statistics', async (req, res) => {
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().getDate();
   
-  // Find the "每日運動" task
-  const exerciseTask = data.tasks.find(t => t.name === '每日運動');
-  
   const monthlyStats = data.users.map(user => {
-    const userExerciseCompletions = data.completions.filter(c => {
+    // Get all tasks assigned to this user
+    const userTaskIds = data.userTasks
+      .filter(ut => ut.userId === user.id)
+      .map(ut => ut.taskId);
+    
+    // Calculate completions for all user's tasks
+    const userAllCompletions = data.completions.filter(c => {
       const completionDate = new Date(c.date);
       return c.userId === user.id && 
-             c.taskId === exerciseTask?.id &&
+             userTaskIds.includes(c.taskId) &&
              completionDate.getMonth() === currentMonth &&
              completionDate.getFullYear() === currentYear &&
              c.completed;
     });
     
-    // Calculate completion rate based on current date of the month
-    const completionRate = currentDate > 0 ? (userExerciseCompletions.length / currentDate * 100).toFixed(1) : 0;
+    // Calculate unique days where user completed at least one task
+    const uniqueCompletedDates = [...new Set(userAllCompletions.map(c => c.date))];
+    const completedDays = uniqueCompletedDates.length;
     
-    // Total days completed in the month (not consecutive, just total)
-    const completedDays = userExerciseCompletions.length;
+    // Calculate completion rate based on current date of the month
+    const completionRate = currentDate > 0 ? (completedDays / currentDate * 100).toFixed(1) : 0;
+    
+    // Get task breakdown for detailed view
+    const taskBreakdown = userTaskIds.map(taskId => {
+      const task = data.tasks.find(t => t.id === taskId);
+      const taskCompletions = data.completions.filter(c => {
+        const completionDate = new Date(c.date);
+        return c.userId === user.id && 
+               c.taskId === taskId &&
+               completionDate.getMonth() === currentMonth &&
+               completionDate.getFullYear() === currentYear &&
+               c.completed;
+      });
+      
+      return {
+        taskId: taskId,
+        taskName: task?.name || 'Unknown',
+        completedDays: taskCompletions.length,
+        completionRate: currentDate > 0 ? (taskCompletions.length / currentDate * 100).toFixed(1) : 0
+      };
+    });
     
     return {
       userId: user.id,
       userName: user.name,
-      completedTasks: userExerciseCompletions.length,
-      completedDays: completedDays,  // Total days completed
+      completedTasks: userAllCompletions.length,
+      completedDays: completedDays,  // Total unique days with at least one task completed
       completionRate: parseFloat(completionRate),
-      combo: completedDays  // Keep combo for backward compatibility, but it's now total days
+      combo: completedDays,  // Keep combo for backward compatibility, but it's now total days
+      taskBreakdown: taskBreakdown  // Detailed breakdown per task
     };
   });
   

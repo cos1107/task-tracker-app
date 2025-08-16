@@ -290,12 +290,26 @@ async function loadStatistics() {
         // NEW REWARD POLICY: Red heart if completion rate > 50%
         const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
         
+        // Build task breakdown display
+        let taskBreakdownHtml = '';
+        if (userStat.taskBreakdown && userStat.taskBreakdown.length > 0) {
+            taskBreakdownHtml = userStat.taskBreakdown.map(task => 
+                `<div class="task-breakdown-item">
+                    <span class="task-name">${task.taskName}</span>
+                    <span class="task-stats">${task.completedDays}天 (${task.completionRate}%)</span>
+                </div>`
+            ).join('');
+        }
+        
         html += `
             <div class="stat-card">
                 <h3>${userStat.userName}</h3>
                 <div class="stat-value">${userStat.completionRate}%</div>
-                <div class="stat-label">運動完成率</div>
-                <div class="combo-text">達成運動${completedDays}天${heartIcon}</div>
+                <div class="stat-label">整體完成率</div>
+                <div class="combo-text">達成任務${completedDays}天${heartIcon}</div>
+                <div class="task-breakdown">
+                    ${taskBreakdownHtml}
+                </div>
                 <div class="encouragement-message">${encouragementMessage}</div>
             </div>
         `;
