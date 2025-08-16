@@ -87,6 +87,15 @@ function showUserSelection() {
     document.getElementById('user-selection').classList.remove('hidden');
     document.getElementById('main-app').classList.add('hidden');
     
+    // Ensure user info shows "None" when on login page
+    const userInfo = document.getElementById('user-info');
+    if (userInfo) {
+        userInfo.textContent = '登入身份：None';
+        userInfo.style.cursor = 'default';
+        userInfo.title = '';
+        userInfo.onclick = null;
+    }
+    
     const userList = document.getElementById('user-list');
     userList.innerHTML = '';
     
@@ -103,6 +112,10 @@ function showUserSelection() {
             console.log('Button clicked for user:', user);
             selectUser(user);
         };
+        btn.addEventListener('click', () => {
+            console.log('Event listener triggered for user:', user);
+            selectUser(user);
+        });
         userList.appendChild(btn);
     });
 }
@@ -112,8 +125,7 @@ async function selectUser(user) {
     try {
         currentUser = user;
         localStorage.setItem('userId', user.id);
-        tasks = await fetchUserTasks(user.id);
-        console.log('User tasks loaded:', tasks);
+        console.log('User selected:', user);
         showMainApp();
     } catch (error) {
         console.error('Error selecting user:', error);
@@ -126,6 +138,7 @@ function showMainApp() {
     
     const userSelection = document.getElementById('user-selection');
     const mainApp = document.getElementById('main-app');
+    const logoutBtn = document.getElementById('logout-btn');
     
     if (!userSelection || !mainApp) {
         console.error('Required elements not found');
@@ -134,12 +147,9 @@ function showMainApp() {
     
     userSelection.classList.add('hidden');
     mainApp.classList.remove('hidden');
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
     
-    const userInfo = document.getElementById('user-info');
-    userInfo.textContent = `登入身份：${currentUser.name}`;
-    userInfo.style.cursor = 'pointer';
-    userInfo.title = '點擊登出';
-    userInfo.onclick = logout;
+    document.getElementById('user-info').textContent = `登入身份：${currentUser.name}`;
     
     if (currentUser.isAdmin) {
         const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
@@ -147,24 +157,6 @@ function showMainApp() {
     }
     
     loadDailyTasks();
-}
-
-function logout() {
-    if (confirm('確定要登出嗎？')) {
-        localStorage.removeItem('userId');
-        currentUser = null;
-        tasks = [];
-        
-        // Hide admin tab if it was shown
-        const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
-        if (adminConfigTab) adminConfigTab.classList.add('hidden');
-        
-        // Reset to first tab
-        switchTab('check-in');
-        
-        // Show user selection screen
-        showUserSelection();
-    }
 }
 
 function switchTab(tabName) {
@@ -205,26 +197,42 @@ async function loadDailyTasks() {
     const tasksList = document.getElementById('tasks-list');
     tasksList.innerHTML = '';
     
-    const today = getLocalDateString();
-    const completions = await fetchCompletions(currentUser.id);
+    if (!currentUser) {
+        console.error('No current user when loading daily tasks');
+        return;
+    }
     
-    tasks.forEach(task => {
-        const taskItem = document.createElement('div');
-        taskItem.className = 'task-item';
+    const today = getLocalDateString();
+    
+    try {
+        // Always fetch fresh user tasks to avoid duplicates
+        const userTasks = await fetchUserTasks(currentUser.id);
+        const completions = await fetchCompletions(currentUser.id);
         
-        const completion = completions.find(c => c.taskId === task.id && c.date === today);
-        const isCompleted = completion ? completion.completed : false;
+        userTasks.forEach(task => {
+            const taskItem = document.createElement('div');
+            taskItem.className = 'task-item';
+            
+            const completion = completions.find(c => c.taskId === task.id && c.date === today);
+            const isCompleted = completion ? completion.completed : false;
+            
+            taskItem.innerHTML = `
+                <label>
+                    <input type="checkbox" ${isCompleted ? 'checked' : ''} 
+                           onchange="toggleTask(${task.id}, '${today}', this.checked)">
+                    <span>${task.name}</span>
+                </label>
+            `;
+            
+            tasksList.appendChild(taskItem);
+        });
         
-        taskItem.innerHTML = `
-            <label>
-                <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                       onchange="toggleTask(${task.id}, '${today}', this.checked)">
-                <span>${task.name}</span>
-            </label>
-        `;
-        
-        tasksList.appendChild(taskItem);
-    });
+        // Update global tasks variable for other functions
+        tasks = userTasks;
+    } catch (error) {
+        console.error('Error loading daily tasks:', error);
+        tasksList.innerHTML = '<p style="color: #e74c3c;">載入任務失敗，請重新整理頁面</p>';
+    }
 }
 
 async function toggleTask(taskId, date, completed) {
@@ -238,16 +246,6 @@ async function toggleTask(taskId, date, completed) {
             completed
         })
     });
-    
-    // Refresh other views if they are visible
-    const currentTab = document.querySelector('.tab-btn.active')?.dataset.tab;
-    if (currentTab === 'my-progress') {
-        loadMyProgress();
-    } else if (currentTab === 'team-progress') {
-        loadTeamProgress();
-    } else if (currentTab === 'statistics') {
-        loadStatistics();
-    }
 }
 
 async function fetchCompletions(userId) {
@@ -292,40 +290,101 @@ async function loadTeamProgress() {
 }
 
 async function loadStatistics() {
-    // Update the title to show current month
-    const currentMonth = new Date().getMonth() + 1; // JavaScript months are 0-indexed
+    // Update the title to show yearly view
+    const currentYear = new Date().getFullYear();
     const titleElement = document.getElementById('statistics-title');
     if (titleElement) {
-        titleElement.textContent = `【TEST】${currentMonth}月統計`;
+        titleElement.textContent = `${currentYear}年統計`;
     }
     
     const statsContainer = document.getElementById('stats-container');
-    const stats = await fetch('/api/statistics').then(r => r.json());
+    const yearlyStats = await fetch('/api/statistics').then(r => r.json());
     
-    // Find the highest completion rate
-    const maxRate = Math.max(...stats.map(s => s.completionRate));
+    if (yearlyStats.length === 0) {
+        statsContainer.innerHTML = '<p>暫無統計資料</p>';
+        return;
+    }
+    
+    // Get all users from the current month data
+    const currentMonthData = yearlyStats.find(month => month.isCurrent) || yearlyStats[0];
+    const users = currentMonthData.users;
     
     let html = '';
-    stats.forEach(userStat => {
+    
+    // First, display all users in the top row
+    html += `<div class="users-overview-section">`;
+    html += `<div class="users-grid">`;
+    
+    users.forEach(userStat => {
         const encouragementMessage = userStat.completionRate >= 50 ? 
             '妳真是太棒了!' : '加油...FIGHTING!';
         
-        // Changed from combo to completedDays - total days completed, not consecutive
         const completedDays = userStat.completedDays || userStat.completedTasks || 0;
-        
-        // NEW REWARD POLICY: Red heart if completion rate > 50%
         const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
         
+        // Build task breakdown display for current month
+        let taskBreakdownHtml = '';
+        if (userStat.taskBreakdown && userStat.taskBreakdown.length > 0) {
+            taskBreakdownHtml = userStat.taskBreakdown.map(task => 
+                `<div class="task-breakdown-item">
+                    <span class="task-name">${task.taskName}</span>
+                    <span class="task-stats">${task.completedDays}天 (${task.completionRate}%)</span>
+                </div>`
+            ).join('');
+        }
+        
         html += `
-            <div class="stat-card">
+            <div class="user-stat-card">
                 <h3>${userStat.userName}</h3>
                 <div class="stat-value">${userStat.completionRate}%</div>
-                <div class="stat-label">運動完成率</div>
-                <div class="combo-text">【TEST】達成運動${completedDays}天${heartIcon}</div>
+                <div class="stat-label">當月完成率</div>
+                <div class="combo-text">達成任務${completedDays}天${heartIcon}</div>
+                <div class="task-breakdown">
+                    ${taskBreakdownHtml}
+                </div>
                 <div class="encouragement-message">${encouragementMessage}</div>
             </div>
         `;
     });
+    
+    html += `</div>`; // Close users-grid
+    html += `</div>`; // Close users-overview-section
+    
+    // Then display monthly history below
+    html += `<div class="monthly-history-section">`;
+    html += `<h3>月份歷史記錄</h3>`;
+    
+    yearlyStats.forEach((monthData, index) => {
+        const isCurrentMonth = monthData.isCurrent;
+        const monthClass = isCurrentMonth ? 'current-month' : 'past-month';
+        
+        html += `<div class="month-row ${monthClass}">`;
+        html += `<div class="month-label">
+            <span class="month-name">${monthData.monthName}</span>
+            ${isCurrentMonth ? '<span class="current-badge">當前</span>' : ''}
+        </div>`;
+        
+        html += `<div class="month-users-grid">`;
+        
+        // Display each user's stats for this month in a compact format
+        monthData.users.forEach(userStat => {
+            const completedDays = userStat.completedDays || userStat.completedTasks || 0;
+            const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
+            
+            html += `
+                <div class="month-user-stat">
+                    <div class="user-name">${userStat.userName}</div>
+                    <div class="user-rate">${userStat.completionRate}%${heartIcon}</div>
+                    <div class="user-days">${completedDays}天</div>
+                </div>
+            `;
+        });
+        
+        html += `</div>`; // Close month-users-grid
+        html += `</div>`; // Close month-row
+    });
+    
+    html += `</div>`; // Close monthly-history-section
     
     statsContainer.innerHTML = html;
 }
@@ -731,13 +790,7 @@ async function deleteTask(taskId) {
             loadAdminConfigPanel();
             alert('任務已完全刪除');
         } else {
-            // Handle the case where it's the mandatory task
-            const errorData = await response.json().catch(() => ({}));
-            if (response.status === 400 && errorData.error) {
-                alert(errorData.error);
-            } else {
-                alert('刪除任務失敗');
-            }
+            alert('刪除任務失敗');
         }
     }
 }
@@ -991,4 +1044,29 @@ async function deleteTaskFromUser(userId, taskId) {
     loadAdminConfigPanel();
     alert('任務已從用戶刪除');
 }
-console.log('Vercel sync check - 西元2025年08月17日 (星期日) 01時43分44秒    ');
+
+function logout() {
+    localStorage.removeItem('userId');
+    currentUser = null;
+    tasks = [];
+    
+    const userSelection = document.getElementById('user-selection');
+    const mainApp = document.getElementById('main-app');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userInfo = document.getElementById('user-info');
+    
+    if (userSelection) userSelection.classList.remove('hidden');
+    if (mainApp) mainApp.classList.add('hidden');
+    if (logoutBtn) logoutBtn.classList.add('hidden');
+    
+    // Clear user info display and remove logout functionality
+    if (userInfo) {
+        userInfo.textContent = '登入身份：None';
+        userInfo.style.cursor = 'default';
+        userInfo.title = '';
+        userInfo.onclick = null;
+    }
+    
+    showUserSelection();
+}
+console.log('Statistics updated - 西元2025年08月17日 (星期日) 02時10分00秒');

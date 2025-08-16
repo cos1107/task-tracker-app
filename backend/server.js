@@ -227,41 +227,85 @@ app.post('/api/completions', async (req, res) => {
 
 app.get('/api/statistics', async (req, res) => {
   const data = await loadData();
-  const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
   const currentDate = new Date().getDate();
   
-  // Find the "每日運動" task
-  const exerciseTask = data.tasks.find(t => t.name === '每日運動');
+  // Generate statistics for all months of the current year up to current month
+  const yearlyStats = [];
   
-  
-  const monthlyStats = data.users.map(user => {
-    const userExerciseCompletions = data.completions.filter(c => {
-      const completionDate = new Date(c.date);
-      return c.userId === user.id && 
-             c.taskId === exerciseTask?.id &&
-             completionDate.getMonth() === currentMonth &&
-             completionDate.getFullYear() === currentYear &&
-             c.completed;
+  for (let month = currentMonth; month >= 0; month--) {
+    // Calculate days in month (for past months, use full month, for current month use current date)
+    const daysInMonth = month === currentMonth ? currentDate : new Date(currentYear, month + 1, 0).getDate();
+    
+    if (daysInMonth <= 0) continue; // Skip if no valid days
+    
+    const monthStats = data.users.map(user => {
+      // Get all tasks assigned to this user
+      const userTaskIds = data.userTasks
+        .filter(ut => ut.userId === user.id)
+        .map(ut => ut.taskId);
+      
+      // Calculate completions for all user's tasks in this month
+      const userAllCompletions = data.completions.filter(c => {
+        const completionDate = new Date(c.date);
+        return c.userId === user.id && 
+               userTaskIds.includes(c.taskId) &&
+               completionDate.getMonth() === month &&
+               completionDate.getFullYear() === currentYear &&
+               c.completed;
+      });
+      
+      // Calculate unique days where user completed at least one task
+      const uniqueCompletedDates = [...new Set(userAllCompletions.map(c => c.date))];
+      const completedDays = uniqueCompletedDates.length;
+      
+      // Calculate completion rate based on days in month
+      const completionRate = daysInMonth > 0 ? (completedDays / daysInMonth * 100).toFixed(1) : 0;
+      
+      // Get task breakdown for detailed view
+      const taskBreakdown = userTaskIds.map(taskId => {
+        const task = data.tasks.find(t => t.id === taskId);
+        const taskCompletions = data.completions.filter(c => {
+          const completionDate = new Date(c.date);
+          return c.userId === user.id && 
+                 c.taskId === taskId &&
+                 completionDate.getMonth() === month &&
+                 completionDate.getFullYear() === currentYear &&
+                 c.completed;
+        });
+        
+        return {
+          taskId: taskId,
+          taskName: task?.name || 'Unknown',
+          completedDays: taskCompletions.length,
+          completionRate: daysInMonth > 0 ? (taskCompletions.length / daysInMonth * 100).toFixed(1) : 0
+        };
+      });
+      
+      return {
+        userId: user.id,
+        userName: user.name,
+        completedTasks: userAllCompletions.length,
+        completedDays: completedDays,  // Total unique days with at least one task completed
+        completionRate: parseFloat(completionRate),
+        combo: completedDays,  // Keep combo for backward compatibility
+        taskBreakdown: taskBreakdown  // Detailed breakdown per task
+      };
     });
     
-    // Calculate completion rate based on current date of the month
-    const completionRate = currentDate > 0 ? (userExerciseCompletions.length / currentDate * 100).toFixed(1) : 0;
-    
-    // Total days completed in the month (not consecutive, just total)
-    const completedDays = userExerciseCompletions.length;
-    
-    return {
-      userId: user.id,
-      userName: user.name,
-      completedTasks: userExerciseCompletions.length,
-      completedDays: completedDays,  // Total days completed
-      completionRate: parseFloat(completionRate),
-      combo: completedDays  // Keep combo for backward compatibility, but it's now total days
-    };
-  });
+    // Add month info to the stats
+    yearlyStats.push({
+      month: month + 1, // Convert to 1-based month
+      monthName: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'][month],
+      year: currentYear,
+      daysInMonth: daysInMonth,
+      isCurrent: month === currentMonth,
+      users: monthStats
+    });
+  }
   
-  res.json(monthlyStats);
+  res.json(yearlyStats);
 });
 
 app.get('/api/weekly-progress', async (req, res) => {
