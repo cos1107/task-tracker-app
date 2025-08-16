@@ -233,42 +233,16 @@ app.get('/api/statistics', async (req, res) => {
     // Calculate completion rate based on current date of the month
     const completionRate = currentDate > 0 ? (userExerciseCompletions.length / currentDate * 100).toFixed(1) : 0;
     
-    // Calculate current combo streak (consecutive days from today backwards)
-    let combo = 0;
-    const today = new Date();
-    let checkDate = new Date(today);
-    
-    // Start checking from today and go backwards
-    while (true) {
-      const dateStr = getLocalDateString(checkDate);
-      const completion = data.completions.find(c => 
-        c.userId === user.id && 
-        c.taskId === exerciseTask?.id && 
-        c.date === dateStr && 
-        c.completed
-      );
-      
-      if (completion) {
-        combo++;
-        // Move to previous day
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        // Stop as soon as we find a day without exercise
-        break;
-      }
-      
-      // Limit combo to not exceed current date of the month
-      if (combo >= currentDate) {
-        break;
-      }
-    }
+    // Total days completed in the month (not consecutive, just total)
+    const completedDays = userExerciseCompletions.length;
     
     return {
       userId: user.id,
       userName: user.name,
       completedTasks: userExerciseCompletions.length,
+      completedDays: completedDays,  // Total days completed
       completionRate: parseFloat(completionRate),
-      combo: combo
+      combo: completedDays  // Keep combo for backward compatibility, but it's now total days
     };
   });
   
