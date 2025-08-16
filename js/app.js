@@ -103,10 +103,6 @@ function showUserSelection() {
             console.log('Button clicked for user:', user);
             selectUser(user);
         };
-        btn.addEventListener('click', () => {
-            console.log('Event listener triggered for user:', user);
-            selectUser(user);
-        });
         userList.appendChild(btn);
     });
 }
