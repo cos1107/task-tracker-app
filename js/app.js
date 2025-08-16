@@ -195,7 +195,16 @@ function updateCurrentDate() {
 }
 
 async function loadDailyTasks() {
+    console.log('loadDailyTasks() called for user:', currentUser?.name);
+    
     const tasksList = document.getElementById('tasks-list');
+    
+    if (!tasksList) {
+        console.error('Tasks list element not found');
+        return;
+    }
+    
+    // Clear existing tasks
     tasksList.innerHTML = '';
     
     if (!currentUser) {
@@ -210,9 +219,22 @@ async function loadDailyTasks() {
         const userTasks = await fetchUserTasks(currentUser.id);
         const completions = await fetchCompletions(currentUser.id);
         
+        console.log('Fetched tasks for user:', currentUser.name, 'Tasks:', userTasks.length);
+        
+        // Create a Set to track unique task IDs and prevent duplicates
+        const addedTaskIds = new Set();
+        
         userTasks.forEach(task => {
+            // Skip if task already added (shouldn't happen, but defensive)
+            if (addedTaskIds.has(task.id)) {
+                console.warn('Skipping duplicate task:', task.id, task.name);
+                return;
+            }
+            addedTaskIds.add(task.id);
+            
             const taskItem = document.createElement('div');
             taskItem.className = 'task-item';
+            taskItem.dataset.taskId = task.id; // Add data attribute for debugging
             
             const completion = completions.find(c => c.taskId === task.id && c.date === today);
             const isCompleted = completion ? completion.completed : false;
