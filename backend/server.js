@@ -25,7 +25,12 @@ function getLocalDateString(date = new Date()) {
 async function loadData() {
   try {
     const data = await fs.readFile(DATA_FILE, 'utf-8');
-    return JSON.parse(data);
+    const parsedData = JSON.parse(data);
+    
+    // Ensure "每日運動" task always exists
+    await ensureMandatoryTask(parsedData);
+    
+    return parsedData;
   } catch (error) {
     const defaultData = {
       users: [
@@ -48,6 +53,34 @@ async function loadData() {
     await saveData(defaultData);
     return defaultData;
   }
+}
+
+async function ensureMandatoryTask(data) {
+  // Check if "每日運動" task exists
+  let exerciseTask = data.tasks.find(t => t.name === '每日運動');
+  
+  if (!exerciseTask) {
+    // Create the mandatory task
+    const newTaskId = Math.max(...data.tasks.map(t => t.id), 0) + 1;
+    exerciseTask = {
+      id: newTaskId,
+      name: "每日運動",
+      isCommon: true,
+      createdAt: new Date().toISOString()
+    };
+    data.tasks.push(exerciseTask);
+  }
+  
+  // Ensure all users have this task assigned
+  data.users.forEach(user => {
+    const hasTask = data.userTasks.some(ut => ut.userId === user.id && ut.taskId === exerciseTask.id);
+    if (!hasTask) {
+      data.userTasks.push({ userId: user.id, taskId: exerciseTask.id });
+    }
+  });
+  
+  // Save the data if we made changes
+  await saveData(data);
 }
 
 async function saveData(data) {
@@ -310,6 +343,17 @@ app.put('/api/tasks/:taskId', async (req, res) => {
 app.delete('/api/tasks/:taskId', async (req, res) => {
   const taskId = parseInt(req.params.taskId);
   const data = await loadData();
+  
+  // Find the task to check if it's the mandatory "每日運動" task
+  const taskToDelete = data.tasks.find(t => t.id === taskId);
+  
+  // Protect the mandatory "每日運動" task from deletion
+  if (taskToDelete && taskToDelete.name === '每日運動') {
+    return res.status(400).json({ 
+      error: '每日運動是必要任務，無法刪除',
+      message: 'The daily exercise task is mandatory and cannot be deleted'
+    });
+  }
   
   data.tasks = data.tasks.filter(t => t.id !== taskId);
   data.userTasks = data.userTasks.filter(ut => ut.taskId !== taskId);

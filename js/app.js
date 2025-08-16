@@ -731,7 +731,13 @@ async function deleteTask(taskId) {
             loadAdminConfigPanel();
             alert('任務已完全刪除');
         } else {
-            alert('刪除任務失敗');
+            // Handle the case where it's the mandatory task
+            const errorData = await response.json().catch(() => ({}));
+            if (response.status === 400 && errorData.error) {
+                alert(errorData.error);
+            } else {
+                alert('刪除任務失敗');
+            }
         }
     }
 }
