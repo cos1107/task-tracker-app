@@ -75,6 +75,13 @@
       "date": "2025-08-16",
       "completed": true,
       "week": 33
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-08-17",
+      "completed": true,
+      "week": 33
     }
   ]
 }

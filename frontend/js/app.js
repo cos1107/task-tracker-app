@@ -968,3 +968,4 @@ function logout() {
     
     showUserSelection();
 }
+console.log('FRONTEND JavaScript loaded - 2025年08月17日 02時00分00秒');
