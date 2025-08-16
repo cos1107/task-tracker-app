@@ -991,3 +991,4 @@ async function deleteTaskFromUser(userId, taskId) {
     loadAdminConfigPanel();
     alert('任務已從用戶刪除');
 }
+console.log('Vercel sync check - 西元2025年08月17日 (星期日) 01時43分44秒    ');
