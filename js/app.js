@@ -109,23 +109,17 @@ function showUserSelection() {
         btn.className = 'user-btn';
         btn.textContent = user.name;
         btn.onclick = () => {
-            console.log('Button clicked for user:', user);
+            console.log('User selected:', user);
             selectUser(user);
         };
-        btn.addEventListener('click', () => {
-            console.log('Event listener triggered for user:', user);
-            selectUser(user);
-        });
         userList.appendChild(btn);
     });
 }
 
 async function selectUser(user) {
-    console.log('Selecting user:', user);
     try {
         currentUser = user;
         localStorage.setItem('userId', user.id);
-        console.log('User selected:', user);
         showMainApp();
     } catch (error) {
         console.error('Error selecting user:', error);
