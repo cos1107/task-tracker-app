@@ -87,6 +87,15 @@ function showUserSelection() {
     document.getElementById('user-selection').classList.remove('hidden');
     document.getElementById('main-app').classList.add('hidden');
     
+    // Ensure user info shows "None" when on login page
+    const userInfo = document.getElementById('user-info');
+    if (userInfo) {
+        userInfo.textContent = '登入身份：None';
+        userInfo.style.cursor = 'default';
+        userInfo.title = '';
+        userInfo.onclick = null;
+    }
+    
     const userList = document.getElementById('user-list');
     userList.innerHTML = '';
     
@@ -982,10 +991,19 @@ function logout() {
     const userSelection = document.getElementById('user-selection');
     const mainApp = document.getElementById('main-app');
     const logoutBtn = document.getElementById('logout-btn');
+    const userInfo = document.getElementById('user-info');
     
     if (userSelection) userSelection.classList.remove('hidden');
     if (mainApp) mainApp.classList.add('hidden');
     if (logoutBtn) logoutBtn.classList.add('hidden');
+    
+    // Clear user info display and remove logout functionality
+    if (userInfo) {
+        userInfo.textContent = '登入身份：None';
+        userInfo.style.cursor = 'default';
+        userInfo.title = '';
+        userInfo.onclick = null;
+    }
     
     showUserSelection();
 }
