@@ -321,7 +321,7 @@ async function loadStatistics() {
                 <h3>${userStat.userName}</h3>
                 <div class="stat-value">${userStat.completionRate}%</div>
                 <div class="stat-label">運動完成率</div>
-                <div class="combo-text">本月運動${completedDays}天${heartIcon}</div>
+                <div class="combo-text">達成運動${completedDays}天${heartIcon}</div>
                 <div class="encouragement-message">${encouragementMessage}</div>
             </div>
         `;
