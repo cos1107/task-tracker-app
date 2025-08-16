@@ -156,7 +156,8 @@ function showMainApp() {
         if (adminConfigTab) adminConfigTab.classList.remove('hidden');
     }
     
-    loadDailyTasks();
+    // Switch to the default tab (check-in) which will load the daily tasks
+    switchTab('check-in');
 }
 
 function switchTab(tabName) {
