@@ -15,12 +15,36 @@ function getLocalDateString(date = new Date()) {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
+    // Check for Facebook authentication callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const fbAuth = urlParams.get('fbAuth');
+    const fbUserId = urlParams.get('userId');
+    
+    if (fbAuth === 'success' && fbUserId) {
+        // Facebook authentication successful
+        localStorage.setItem('userId', fbUserId);
+        localStorage.setItem('authMethod', 'facebook');
+        // Clean URL
+        window.history.replaceState({}, document.title, "/");
+    }
+    
+    // Check authentication status first
+    const authStatus = await checkAuthStatus();
+    
     const savedUserId = localStorage.getItem('userId');
+    const authMethod = localStorage.getItem('authMethod');
     
     users = await fetchUsers();
     allTasks = await fetchTasks();
     
-    if (savedUserId) {
+    if (authStatus.authenticated) {
+        // User is authenticated via Facebook
+        currentUser = authStatus.user;
+        localStorage.setItem('userId', currentUser.id);
+        localStorage.setItem('authMethod', 'facebook');
+        tasks = await fetchUserTasks(currentUser.id);
+        showMainApp();
+    } else if (savedUserId) {
         currentUser = users.find(u => u.id === parseInt(savedUserId));
         if (currentUser) {
             tasks = await fetchUserTasks(currentUser.id);
@@ -34,6 +58,18 @@ async function init() {
     
     setupEventListeners();
     updateCurrentDate();
+}
+
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/auth/status', {
+            credentials: 'include'
+        });
+        return response.json();
+    } catch (error) {
+        console.error('Error checking auth status:', error);
+        return { authenticated: false };
+    }
 }
 
 function setupEventListeners() {
@@ -90,25 +126,50 @@ function showUserSelection() {
     const userList = document.getElementById('user-list');
     userList.innerHTML = '';
     
+    // Add Facebook login button at the top
+    const fbLoginDiv = document.createElement('div');
+    fbLoginDiv.className = 'facebook-login-section';
+    fbLoginDiv.innerHTML = `
+        <button class="facebook-login-btn" onclick="loginWithFacebook()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877f2">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+            使用 Facebook 登入
+        </button>
+        <div class="divider">
+            <span>或選擇現有用戶</span>
+        </div>
+    `;
+    userList.appendChild(fbLoginDiv);
+    
     if (users.length === 0) {
-        userList.innerHTML = '<p style="color: #e74c3c;">無法載入用戶列表，請確認伺服器是否運行中</p>';
+        userList.innerHTML += '<p style="color: #e74c3c;">無法載入用戶列表，請確認伺服器是否運行中</p>';
         return;
     }
+    
+    // Create container for existing users
+    const existingUsersDiv = document.createElement('div');
+    existingUsersDiv.className = 'existing-users';
     
     users.forEach(user => {
         const btn = document.createElement('button');
         btn.className = 'user-btn';
-        btn.textContent = user.name;
+        btn.innerHTML = `
+            <span>${user.name}</span>
+            ${user.facebookId ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="#1877f2" style="margin-left: 8px;"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>' : ''}
+        `;
         btn.onclick = () => {
             console.log('Button clicked for user:', user);
             selectUser(user);
         };
-        btn.addEventListener('click', () => {
-            console.log('Event listener triggered for user:', user);
-            selectUser(user);
-        });
-        userList.appendChild(btn);
+        existingUsersDiv.appendChild(btn);
     });
+    
+    userList.appendChild(existingUsersDiv);
+}
+
+function loginWithFacebook() {
+    window.location.href = '/auth/facebook';
 }
 
 async function selectUser(user) {
@@ -212,16 +273,43 @@ async function loadDailyTasks() {
 }
 
 async function toggleTask(taskId, date, completed) {
-    await fetch('/api/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            userId: currentUser.id,
-            taskId,
-            date,
-            completed
-        })
-    });
+    try {
+        const response = await fetch('/api/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                userId: currentUser.id,
+                taskId,
+                date,
+                completed
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save task completion');
+        }
+        
+        const result = await response.json();
+        console.log('Task completion saved:', result);
+        
+        // Show visual feedback
+        const taskCheckbox = document.querySelector(`input[onchange*="${taskId}"]`);
+        if (taskCheckbox) {
+            taskCheckbox.parentElement.classList.add('saved');
+            setTimeout(() => {
+                taskCheckbox.parentElement.classList.remove('saved');
+            }, 1000);
+        }
+    } catch (error) {
+        console.error('Error toggling task:', error);
+        alert('無法儲存任務狀態，請重試');
+        // Revert checkbox state on error
+        const taskCheckbox = document.querySelector(`input[onchange*="${taskId}"]`);
+        if (taskCheckbox) {
+            taskCheckbox.checked = !completed;
+        }
+    }
 }
 
 async function fetchCompletions(userId) {
@@ -953,8 +1041,23 @@ async function deleteTaskFromUser(userId, taskId) {
     alert('任務已從用戶刪除');
 }
 
-function logout() {
+async function logout() {
+    const authMethod = localStorage.getItem('authMethod');
+    
+    // If logged in via Facebook, logout from server session too
+    if (authMethod === 'facebook') {
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+        } catch (error) {
+            console.error('Error logging out from Facebook:', error);
+        }
+    }
+    
     localStorage.removeItem('userId');
+    localStorage.removeItem('authMethod');
     currentUser = null;
     tasks = [];
     
