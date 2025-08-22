@@ -87,15 +87,6 @@ function showUserSelection() {
     document.getElementById('user-selection').classList.remove('hidden');
     document.getElementById('main-app').classList.add('hidden');
     
-    // Ensure user info shows "None" when on login page
-    const userInfo = document.getElementById('user-info');
-    if (userInfo) {
-        userInfo.textContent = '登入身份：None';
-        userInfo.style.cursor = 'default';
-        userInfo.title = '';
-        userInfo.onclick = null;
-    }
-    
     const userList = document.getElementById('user-list');
     userList.innerHTML = '';
     
@@ -109,7 +100,7 @@ function showUserSelection() {
         btn.className = 'user-btn';
         btn.textContent = user.name;
         btn.onclick = () => {
-            console.log('User selected:', user);
+            console.log('Button clicked for user:', user);
             selectUser(user);
         };
         userList.appendChild(btn);
@@ -117,9 +108,12 @@ function showUserSelection() {
 }
 
 async function selectUser(user) {
+    console.log('Selecting user:', user);
     try {
         currentUser = user;
         localStorage.setItem('userId', user.id);
+        tasks = await fetchUserTasks(user.id);
+        console.log('User tasks loaded:', tasks);
         showMainApp();
     } catch (error) {
         console.error('Error selecting user:', error);
@@ -145,16 +139,26 @@ function showMainApp() {
     
     document.getElementById('user-info').textContent = `登入身份：${currentUser.name}`;
     
-    if (currentUser.isAdmin) {
-        const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
-        if (adminConfigTab) adminConfigTab.classList.remove('hidden');
+    // Show or hide admin tab based on user role
+    const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
+    if (adminConfigTab) {
+        if (currentUser.isAdmin) {
+            adminConfigTab.classList.remove('hidden');
+        } else {
+            adminConfigTab.classList.add('hidden');
+        }
     }
     
-    // Switch to the default tab (check-in) which will load the daily tasks
-    switchTab('check-in');
+    loadDailyTasks();
 }
 
 function switchTab(tabName) {
+    // Prevent non-admin users from accessing admin panel
+    if (tabName === 'admin-config' && !currentUser.isAdmin) {
+        alert('只有管理員可以訪問此頁面');
+        return;
+    }
+    
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabName);
     });
@@ -177,7 +181,9 @@ function switchTab(tabName) {
             loadStatistics();
             break;
         case 'admin-config':
-            loadAdminConfigPanel();
+            if (currentUser.isAdmin) {
+                loadAdminConfigPanel();
+            }
             break;
     }
 }
@@ -189,80 +195,68 @@ function updateCurrentDate() {
 }
 
 async function loadDailyTasks() {
-    console.log('loadDailyTasks() called for user:', currentUser?.name);
-    
     const tasksList = document.getElementById('tasks-list');
-    
-    if (!tasksList) {
-        console.error('Tasks list element not found');
-        return;
-    }
-    
-    // Clear existing tasks
     tasksList.innerHTML = '';
     
-    if (!currentUser) {
-        console.error('No current user when loading daily tasks');
-        return;
-    }
-    
     const today = getLocalDateString();
+    const completions = await fetchCompletions(currentUser.id);
     
-    try {
-        // Always fetch fresh user tasks to avoid duplicates
-        const userTasks = await fetchUserTasks(currentUser.id);
-        const completions = await fetchCompletions(currentUser.id);
+    tasks.forEach(task => {
+        const taskItem = document.createElement('div');
+        taskItem.className = 'task-item';
         
-        console.log('Fetched tasks for user:', currentUser.name, 'Tasks:', userTasks.length);
+        const completion = completions.find(c => c.taskId === task.id && c.date === today);
+        const isCompleted = completion ? completion.completed : false;
         
-        // Create a Set to track unique task IDs and prevent duplicates
-        const addedTaskIds = new Set();
+        taskItem.innerHTML = `
+            <label>
+                <input type="checkbox" ${isCompleted ? 'checked' : ''} 
+                       onchange="toggleTask(${task.id}, '${today}', this.checked)">
+                <span>${task.name}</span>
+            </label>
+        `;
         
-        userTasks.forEach(task => {
-            // Skip if task already added (shouldn't happen, but defensive)
-            if (addedTaskIds.has(task.id)) {
-                console.warn('Skipping duplicate task:', task.id, task.name);
-                return;
-            }
-            addedTaskIds.add(task.id);
-            
-            const taskItem = document.createElement('div');
-            taskItem.className = 'task-item';
-            taskItem.dataset.taskId = task.id; // Add data attribute for debugging
-            
-            const completion = completions.find(c => c.taskId === task.id && c.date === today);
-            const isCompleted = completion ? completion.completed : false;
-            
-            taskItem.innerHTML = `
-                <label>
-                    <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                           onchange="toggleTask(${task.id}, '${today}', this.checked)">
-                    <span>${task.name}</span>
-                </label>
-            `;
-            
-            tasksList.appendChild(taskItem);
-        });
-        
-        // Update global tasks variable for other functions
-        tasks = userTasks;
-    } catch (error) {
-        console.error('Error loading daily tasks:', error);
-        tasksList.innerHTML = '<p style="color: #e74c3c;">載入任務失敗，請重新整理頁面</p>';
-    }
+        tasksList.appendChild(taskItem);
+    });
 }
 
 async function toggleTask(taskId, date, completed) {
-    await fetch('/api/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            userId: currentUser.id,
-            taskId,
-            date,
-            completed
-        })
-    });
+    try {
+        const response = await fetch('/api/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUser.id,
+                taskId,
+                date,
+                completed
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save task completion');
+        }
+        
+        const result = await response.json();
+        console.log('Task completion saved:', result);
+        
+        // Show visual feedback
+        const taskCheckbox = document.querySelector(`input[onchange*="${taskId}"]`);
+        if (taskCheckbox) {
+            taskCheckbox.parentElement.classList.add('saved');
+            setTimeout(() => {
+                taskCheckbox.parentElement.classList.remove('saved');
+            }, 1000);
+        }
+    } catch (error) {
+        console.error('Error toggling task:', error);
+        alert('無法儲存任務狀態，請重試');
+        // Revert checkbox state on error
+        const taskCheckbox = document.querySelector(`input[onchange*="${taskId}"]`);
+        if (taskCheckbox) {
+            taskCheckbox.checked = !completed;
+        }
+    }
 }
 
 async function fetchCompletions(userId) {
@@ -307,101 +301,33 @@ async function loadTeamProgress() {
 }
 
 async function loadStatistics() {
-    // Update the title to show yearly view
-    const currentYear = new Date().getFullYear();
-    const titleElement = document.getElementById('statistics-title');
-    if (titleElement) {
-        titleElement.textContent = `${currentYear}年統計`;
-    }
-    
     const statsContainer = document.getElementById('stats-container');
-    const yearlyStats = await fetch('/api/statistics').then(r => r.json());
+    const stats = await fetch('/api/statistics').then(r => r.json());
     
-    if (yearlyStats.length === 0) {
-        statsContainer.innerHTML = '<p>暫無統計資料</p>';
-        return;
-    }
-    
-    // Get all users from the current month data
-    const currentMonthData = yearlyStats.find(month => month.isCurrent) || yearlyStats[0];
-    const users = currentMonthData.users;
+    // Find the highest completion rate
+    const maxRate = Math.max(...stats.map(s => s.completionRate));
     
     let html = '';
-    
-    // First, display all users in the top row
-    html += `<div class="users-overview-section">`;
-    html += `<div class="users-grid">`;
-    
-    users.forEach(userStat => {
+    stats.forEach(userStat => {
         const encouragementMessage = userStat.completionRate >= 50 ? 
             '妳真是太棒了!' : '加油...FIGHTING!';
         
-        const completedDays = userStat.completedDays || userStat.completedTasks || 0;
-        const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
+        // Handle undefined combo
+        const comboCount = userStat.combo || 0;
         
-        // Build task breakdown display for current month
-        let taskBreakdownHtml = '';
-        if (userStat.taskBreakdown && userStat.taskBreakdown.length > 0) {
-            taskBreakdownHtml = userStat.taskBreakdown.map(task => 
-                `<div class="task-breakdown-item">
-                    <span class="task-name">${task.taskName}</span>
-                    <span class="task-stats">${task.completedDays}天 (${task.completionRate}%)</span>
-                </div>`
-            ).join('');
-        }
+        // NEW REWARD POLICY: Red heart right after combo text if combo > 2
+        const heartIcon = comboCount > 2 ? ' ❤️' : '';
         
         html += `
-            <div class="user-stat-card">
+            <div class="stat-card">
                 <h3>${userStat.userName}</h3>
                 <div class="stat-value">${userStat.completionRate}%</div>
-                <div class="stat-label">當月完成率</div>
-                <div class="combo-text">達成任務${completedDays}天${heartIcon}</div>
-                <div class="task-breakdown">
-                    ${taskBreakdownHtml}
-                </div>
+                <div class="stat-label">運動完成率</div>
+                <div class="combo-text">連續${comboCount}天運動${heartIcon}</div>
                 <div class="encouragement-message">${encouragementMessage}</div>
             </div>
         `;
     });
-    
-    html += `</div>`; // Close users-grid
-    html += `</div>`; // Close users-overview-section
-    
-    // Then display monthly history below
-    html += `<div class="monthly-history-section">`;
-    html += `<h3>月份歷史記錄</h3>`;
-    
-    yearlyStats.forEach((monthData, index) => {
-        const isCurrentMonth = monthData.isCurrent;
-        const monthClass = isCurrentMonth ? 'current-month' : 'past-month';
-        
-        html += `<div class="month-row ${monthClass}">`;
-        html += `<div class="month-label">
-            <span class="month-name">${monthData.monthName}</span>
-            ${isCurrentMonth ? '<span class="current-badge">當前</span>' : ''}
-        </div>`;
-        
-        html += `<div class="month-users-grid">`;
-        
-        // Display each user's stats for this month in a compact format
-        monthData.users.forEach(userStat => {
-            const completedDays = userStat.completedDays || userStat.completedTasks || 0;
-            const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
-            
-            html += `
-                <div class="month-user-stat">
-                    <div class="user-name">${userStat.userName}</div>
-                    <div class="user-rate">${userStat.completionRate}%${heartIcon}</div>
-                    <div class="user-days">${completedDays}天</div>
-                </div>
-            `;
-        });
-        
-        html += `</div>`; // Close month-users-grid
-        html += `</div>`; // Close month-row
-    });
-    
-    html += `</div>`; // Close monthly-history-section
     
     statsContainer.innerHTML = html;
 }
@@ -709,6 +635,12 @@ async function loadUserTaskManagement() {
     console.log('Users:', users);
     console.log('All tasks:', allTasks);
     
+    // Double-check admin permission
+    if (!currentUser.isAdmin) {
+        console.error('Unauthorized: User is not admin');
+        return;
+    }
+    
     const managementDiv = document.getElementById('user-task-management');
     if (!managementDiv) {
         console.error('Management div not found');
@@ -797,6 +729,12 @@ async function editTask(taskId, currentName) {
 }
 
 async function deleteTask(taskId) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以刪除任務');
+        return;
+    }
+    
     if (confirm('確定要完全刪除這個任務嗎？此操作將移除所有用戶的此任務及其完成記錄。')) {
         const response = await fetch(`/api/tasks/${taskId}`, {
             method: 'DELETE'
@@ -862,6 +800,12 @@ async function editUser(userId, currentName, currentIsAdmin) {
 }
 
 async function deleteUser(userId) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以刪除用戶');
+        return;
+    }
+    
     if (confirm('確定要刪除這個用戶嗎？這將同時刪除該用戶的所有記錄。')) {
         const response = await fetch(`/api/users/${userId}`, {
             method: 'DELETE'
@@ -955,6 +899,12 @@ async function removeUserTask(userId, taskId) {
 
 // New functions for the simplified interface
 async function addUser() {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以新增用戶');
+        return;
+    }
+    
     const userName = prompt('輸入新用戶名稱:');
     if (!userName || !userName.trim()) {
         return;
@@ -982,6 +932,12 @@ async function addUser() {
 }
 
 async function addTaskToUser(userId) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以新增任務');
+        return;
+    }
+    
     const taskName = prompt('輸入新任務名稱:');
     if (!taskName || !taskName.trim()) {
         return;
@@ -1027,6 +983,12 @@ async function addTaskToUser(userId) {
 }
 
 async function editTask(userId, taskId, currentName) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以編輯任務');
+        return;
+    }
+    
     const newName = prompt('輸入新的任務名稱:', currentName);
     if (!newName || !newName.trim() || newName === currentName) {
         return;
@@ -1048,6 +1010,12 @@ async function editTask(userId, taskId, currentName) {
 }
 
 async function deleteTaskFromUser(userId, taskId) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以刪除任務');
+        return;
+    }
+    
     if (!confirm('確定要從此用戶刪除這個任務嗎？')) {
         return;
     }
@@ -1070,20 +1038,11 @@ function logout() {
     const userSelection = document.getElementById('user-selection');
     const mainApp = document.getElementById('main-app');
     const logoutBtn = document.getElementById('logout-btn');
-    const userInfo = document.getElementById('user-info');
     
     if (userSelection) userSelection.classList.remove('hidden');
     if (mainApp) mainApp.classList.add('hidden');
     if (logoutBtn) logoutBtn.classList.add('hidden');
     
-    // Clear user info display and remove logout functionality
-    if (userInfo) {
-        userInfo.textContent = '登入身份：None';
-        userInfo.style.cursor = 'default';
-        userInfo.title = '';
-        userInfo.onclick = null;
-    }
-    
     showUserSelection();
 }
-console.log('Statistics updated - 西元2025年08月17日 (星期日) 02時10分00秒');
+console.log('FRONTEND JavaScript loaded - 2025年08月17日 02時00分00秒');

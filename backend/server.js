@@ -3,32 +3,11 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs').promises;
-const session = require('express-session');
-const passport = require('passport');
-const FacebookStrategy = require('passport-facebook').Strategy;
-require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: false, // Set to true in production with HTTPS
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-  }
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '..')));
@@ -119,99 +98,6 @@ async function saveData(data) {
   }
 }
 
-// Facebook OAuth Strategy
-if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
-  passport.use(new FacebookStrategy({
-      clientID: process.env.FACEBOOK_APP_ID,
-      clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL: process.env.CALLBACK_URL || "http://localhost:3000/auth/facebook/callback",
-      profileFields: ['id', 'displayName', 'email']
-    },
-    async function(accessToken, refreshToken, profile, done) {
-      try {
-        const data = await loadData();
-        
-        // Check if user exists with this Facebook ID
-        let user = data.users.find(u => u.facebookId === profile.id);
-        
-        if (!user) {
-          // Create new user from Facebook profile
-          const newUserId = Math.max(...data.users.map(u => u.id), 0) + 1;
-          user = {
-            id: newUserId,
-            name: profile.displayName || `Facebook User ${profile.id}`,
-            facebookId: profile.id,
-            isAdmin: false,
-            createdAt: new Date().toISOString()
-          };
-          
-          data.users.push(user);
-          
-          // Add default tasks for new user
-          const commonTasks = data.tasks.filter(t => t.isCommon);
-          commonTasks.forEach(task => {
-            data.userTasks.push({ userId: user.id, taskId: task.id });
-          });
-          
-          await saveData(data);
-        }
-        
-        return done(null, user);
-      } catch (error) {
-        return done(error);
-      }
-    }
-  ));
-}
-
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
-
-passport.deserializeUser(async (id, done) => {
-  try {
-    const data = await loadData();
-    const user = data.users.find(u => u.id === id);
-    done(null, user);
-  } catch (error) {
-    done(error);
-  }
-});
-
-// Facebook authentication routes
-app.get('/auth/facebook', 
-  passport.authenticate('facebook')
-);
-
-app.get('/auth/facebook/callback',
-  passport.authenticate('facebook', { failureRedirect: '/' }),
-  async (req, res) => {
-    // Successful authentication
-    res.redirect('/?fbAuth=success&userId=' + req.user.id);
-  }
-);
-
-// Check authentication status
-app.get('/api/auth/status', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json({ 
-      authenticated: true, 
-      user: req.user 
-    });
-  } else {
-    res.json({ authenticated: false });
-  }
-});
-
-// Logout route
-app.post('/api/auth/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
-    }
-    res.json({ success: true });
-  });
-});
 
 app.get('/api/users', async (req, res) => {
   const data = await loadData();

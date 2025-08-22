@@ -128,61 +128,6 @@ h1 {
     background-color: #2980b9;
 }
 
-/* Facebook login styles */
-.facebook-login-section {
-    margin-bottom: 30px;
-}
-
-.facebook-login-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 24px;
-    background-color: #1877f2;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.facebook-login-btn:hover {
-    background-color: #166fe5;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
-}
-
-.divider {
-    margin: 25px 0;
-    position: relative;
-}
-
-.divider span {
-    background-color: white;
-    padding: 0 15px;
-    color: #999;
-    font-size: 14px;
-    position: relative;
-    z-index: 1;
-}
-
-.divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background-color: #e0e0e0;
-}
-
-.existing-users {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-}
 
 /* Visual feedback for saved tasks */
 .task-item label.saved {

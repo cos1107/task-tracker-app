@@ -15,36 +15,12 @@ function getLocalDateString(date = new Date()) {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    // Check for Facebook authentication callback
-    const urlParams = new URLSearchParams(window.location.search);
-    const fbAuth = urlParams.get('fbAuth');
-    const fbUserId = urlParams.get('userId');
-    
-    if (fbAuth === 'success' && fbUserId) {
-        // Facebook authentication successful
-        localStorage.setItem('userId', fbUserId);
-        localStorage.setItem('authMethod', 'facebook');
-        // Clean URL
-        window.history.replaceState({}, document.title, "/");
-    }
-    
-    // Check authentication status first
-    const authStatus = await checkAuthStatus();
-    
     const savedUserId = localStorage.getItem('userId');
-    const authMethod = localStorage.getItem('authMethod');
     
     users = await fetchUsers();
     allTasks = await fetchTasks();
     
-    if (authStatus.authenticated) {
-        // User is authenticated via Facebook
-        currentUser = authStatus.user;
-        localStorage.setItem('userId', currentUser.id);
-        localStorage.setItem('authMethod', 'facebook');
-        tasks = await fetchUserTasks(currentUser.id);
-        showMainApp();
-    } else if (savedUserId) {
+    if (savedUserId) {
         currentUser = users.find(u => u.id === parseInt(savedUserId));
         if (currentUser) {
             tasks = await fetchUserTasks(currentUser.id);
@@ -58,18 +34,6 @@ async function init() {
     
     setupEventListeners();
     updateCurrentDate();
-}
-
-async function checkAuthStatus() {
-    try {
-        const response = await fetch('/api/auth/status', {
-            credentials: 'include'
-        });
-        return response.json();
-    } catch (error) {
-        console.error('Error checking auth status:', error);
-        return { authenticated: false };
-    }
 }
 
 function setupEventListeners() {
@@ -126,50 +90,21 @@ function showUserSelection() {
     const userList = document.getElementById('user-list');
     userList.innerHTML = '';
     
-    // Add Facebook login button at the top
-    const fbLoginDiv = document.createElement('div');
-    fbLoginDiv.className = 'facebook-login-section';
-    fbLoginDiv.innerHTML = `
-        <button class="facebook-login-btn" onclick="loginWithFacebook()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877f2">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            使用 Facebook 登入
-        </button>
-        <div class="divider">
-            <span>或選擇現有用戶</span>
-        </div>
-    `;
-    userList.appendChild(fbLoginDiv);
-    
     if (users.length === 0) {
-        userList.innerHTML += '<p style="color: #e74c3c;">無法載入用戶列表，請確認伺服器是否運行中</p>';
+        userList.innerHTML = '<p style="color: #e74c3c;">無法載入用戶列表，請確認伺服器是否運行中</p>';
         return;
     }
-    
-    // Create container for existing users
-    const existingUsersDiv = document.createElement('div');
-    existingUsersDiv.className = 'existing-users';
     
     users.forEach(user => {
         const btn = document.createElement('button');
         btn.className = 'user-btn';
-        btn.innerHTML = `
-            <span>${user.name}</span>
-            ${user.facebookId ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="#1877f2" style="margin-left: 8px;"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>' : ''}
-        `;
+        btn.textContent = user.name;
         btn.onclick = () => {
             console.log('Button clicked for user:', user);
             selectUser(user);
         };
-        existingUsersDiv.appendChild(btn);
+        userList.appendChild(btn);
     });
-    
-    userList.appendChild(existingUsersDiv);
-}
-
-function loginWithFacebook() {
-    window.location.href = '/auth/facebook';
 }
 
 async function selectUser(user) {
@@ -204,15 +139,26 @@ function showMainApp() {
     
     document.getElementById('user-info').textContent = `登入身份：${currentUser.name}`;
     
-    if (currentUser.isAdmin) {
-        const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
-        if (adminConfigTab) adminConfigTab.classList.remove('hidden');
+    // Show or hide admin tab based on user role
+    const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
+    if (adminConfigTab) {
+        if (currentUser.isAdmin) {
+            adminConfigTab.classList.remove('hidden');
+        } else {
+            adminConfigTab.classList.add('hidden');
+        }
     }
     
     loadDailyTasks();
 }
 
 function switchTab(tabName) {
+    // Prevent non-admin users from accessing admin panel
+    if (tabName === 'admin-config' && !currentUser.isAdmin) {
+        alert('只有管理員可以訪問此頁面');
+        return;
+    }
+    
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabName);
     });
@@ -235,7 +181,9 @@ function switchTab(tabName) {
             loadStatistics();
             break;
         case 'admin-config':
-            loadAdminConfigPanel();
+            if (currentUser.isAdmin) {
+                loadAdminConfigPanel();
+            }
             break;
     }
 }
@@ -277,7 +225,6 @@ async function toggleTask(taskId, date, completed) {
         const response = await fetch('/api/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({
                 userId: currentUser.id,
                 taskId,
@@ -688,6 +635,12 @@ async function loadUserTaskManagement() {
     console.log('Users:', users);
     console.log('All tasks:', allTasks);
     
+    // Double-check admin permission
+    if (!currentUser.isAdmin) {
+        console.error('Unauthorized: User is not admin');
+        return;
+    }
+    
     const managementDiv = document.getElementById('user-task-management');
     if (!managementDiv) {
         console.error('Management div not found');
@@ -776,6 +729,12 @@ async function editTask(taskId, currentName) {
 }
 
 async function deleteTask(taskId) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以刪除任務');
+        return;
+    }
+    
     if (confirm('確定要完全刪除這個任務嗎？此操作將移除所有用戶的此任務及其完成記錄。')) {
         const response = await fetch(`/api/tasks/${taskId}`, {
             method: 'DELETE'
@@ -841,6 +800,12 @@ async function editUser(userId, currentName, currentIsAdmin) {
 }
 
 async function deleteUser(userId) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以刪除用戶');
+        return;
+    }
+    
     if (confirm('確定要刪除這個用戶嗎？這將同時刪除該用戶的所有記錄。')) {
         const response = await fetch(`/api/users/${userId}`, {
             method: 'DELETE'
@@ -934,6 +899,12 @@ async function removeUserTask(userId, taskId) {
 
 // New functions for the simplified interface
 async function addUser() {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以新增用戶');
+        return;
+    }
+    
     const userName = prompt('輸入新用戶名稱:');
     if (!userName || !userName.trim()) {
         return;
@@ -961,6 +932,12 @@ async function addUser() {
 }
 
 async function addTaskToUser(userId) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以新增任務');
+        return;
+    }
+    
     const taskName = prompt('輸入新任務名稱:');
     if (!taskName || !taskName.trim()) {
         return;
@@ -1006,6 +983,12 @@ async function addTaskToUser(userId) {
 }
 
 async function editTask(userId, taskId, currentName) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以編輯任務');
+        return;
+    }
+    
     const newName = prompt('輸入新的任務名稱:', currentName);
     if (!newName || !newName.trim() || newName === currentName) {
         return;
@@ -1027,6 +1010,12 @@ async function editTask(userId, taskId, currentName) {
 }
 
 async function deleteTaskFromUser(userId, taskId) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以刪除任務');
+        return;
+    }
+    
     if (!confirm('確定要從此用戶刪除這個任務嗎？')) {
         return;
     }
@@ -1041,23 +1030,8 @@ async function deleteTaskFromUser(userId, taskId) {
     alert('任務已從用戶刪除');
 }
 
-async function logout() {
-    const authMethod = localStorage.getItem('authMethod');
-    
-    // If logged in via Facebook, logout from server session too
-    if (authMethod === 'facebook') {
-        try {
-            await fetch('/api/auth/logout', {
-                method: 'POST',
-                credentials: 'include'
-            });
-        } catch (error) {
-            console.error('Error logging out from Facebook:', error);
-        }
-    }
-    
+function logout() {
     localStorage.removeItem('userId');
-    localStorage.removeItem('authMethod');
     currentUser = null;
     tasks = [];
     

@@ -145,9 +145,14 @@ function showMainApp() {
     
     document.getElementById('user-info').textContent = `登入身份：${currentUser.name}`;
     
-    if (currentUser.isAdmin) {
-        const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
-        if (adminConfigTab) adminConfigTab.classList.remove('hidden');
+    // Show or hide admin tab based on user role
+    const adminConfigTab = document.querySelector('[data-tab="admin-config"]');
+    if (adminConfigTab) {
+        if (currentUser.isAdmin) {
+            adminConfigTab.classList.remove('hidden');
+        } else {
+            adminConfigTab.classList.add('hidden');
+        }
     }
     
     // Switch to the default tab (check-in) which will load the daily tasks
@@ -155,6 +160,12 @@ function showMainApp() {
 }
 
 function switchTab(tabName) {
+    // Prevent non-admin users from accessing admin panel
+    if (tabName === 'admin-config' && !currentUser.isAdmin) {
+        alert('只有管理員可以訪問此頁面');
+        return;
+    }
+    
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabName);
     });
@@ -177,7 +188,9 @@ function switchTab(tabName) {
             loadStatistics();
             break;
         case 'admin-config':
-            loadAdminConfigPanel();
+            if (currentUser.isAdmin) {
+                loadAdminConfigPanel();
+            }
             break;
     }
 }
@@ -708,6 +721,12 @@ async function loadUserTaskManagement() {
     console.log('Loading user task management...');
     console.log('Users:', users);
     console.log('All tasks:', allTasks);
+    
+    // Double-check admin permission
+    if (!currentUser.isAdmin) {
+        console.error('Unauthorized: User is not admin');
+        return;
+    }
     
     const managementDiv = document.getElementById('user-task-management');
     if (!managementDiv) {
