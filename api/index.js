@@ -3,7 +3,14 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs').promises;
-const { kv } = require('@vercel/kv');
+
+// Safely import Vercel KV (might not be available in all environments)
+let kv = null;
+try {
+  kv = require('@vercel/kv').kv;
+} catch (error) {
+  console.log('Vercel KV not available:', error.message);
+}
 
 const app = express();
 
@@ -29,16 +36,23 @@ function getLocalDateString(date = new Date()) {
 async function loadData() {
   try {
     // Try to load from Vercel KV first (production)
-    if (process.env.VERCEL) {
+    if (process.env.VERCEL && process.env.KV_REST_API_URL && kv) {
       console.log('Loading data from Vercel KV...');
-      const data = await kv.get('task-tracker-data');
-      if (data) {
-        console.log('Data loaded from KV successfully');
-        await ensureMandatoryTask(data);
-        return data;
+      try {
+        const data = await kv.get('task-tracker-data');
+        if (data) {
+          console.log('Data loaded from KV successfully');
+          await ensureMandatoryTask(data);
+          return data;
+        }
+        console.log('No data found in KV, will create default data');
+      } catch (kvError) {
+        console.log('KV error:', kvError.message, '- falling back to file system');
+        // Fall through to file system as backup
       }
-      console.log('No data found in KV, will create default data');
-    } else {
+    }
+    
+    if (!process.env.VERCEL) {
       // Local development: use file system
       console.log('Loading data from file system...');
       const fileData = await fs.readFile(DATA_FILE, 'utf-8');
@@ -104,22 +118,35 @@ async function ensureMandatoryTask(data) {
 
 async function saveData(data) {
   try {
-    if (process.env.VERCEL) {
-      // Production: Save to Vercel KV
+    if (process.env.VERCEL && process.env.KV_REST_API_URL && kv) {
+      // Production: Save to Vercel KV (if available)
       console.log('Saving data to Vercel KV...');
-      await kv.set('task-tracker-data', data);
-      console.log('Data saved successfully to Vercel KV');
-    } else {
+      try {
+        await kv.set('task-tracker-data', data);
+        console.log('Data saved successfully to Vercel KV');
+        return;
+      } catch (kvError) {
+        console.log('KV save error:', kvError.message, '- data will not persist');
+        // Don't throw error, just log it - app should continue working
+        return;
+      }
+    }
+    
+    if (!process.env.VERCEL) {
       // Local development: Save to file system
       console.log('Saving data to file system...');
       const dataDir = path.dirname(DATA_FILE);
       await fs.mkdir(dataDir, { recursive: true });
       await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
       console.log('Data saved successfully to file');
+    } else {
+      // Vercel without KV - data will not persist, but app continues working
+      console.log('Warning: No persistent storage available on Vercel - data will not persist between requests');
     }
   } catch (error) {
     console.error('Error saving data:', error);
-    throw error;
+    // Don't throw error for save failures to prevent app crash
+    console.log('Save failed, but app will continue working with in-memory data');
   }
 }
 
