@@ -631,8 +631,7 @@ async function loadAdminConfigPanel() {
 }
 
 async function loadUserTaskManagement() {
-    console.log('Loading user task management...');
-    console.log('Users:', users);
+    console.log('Loading task management...');
     console.log('All tasks:', allTasks);
     
     // Double-check admin permission
@@ -647,58 +646,68 @@ async function loadUserTaskManagement() {
         return;
     }
     
-    const userTaskData = await fetch('/api/user-tasks').then(r => r.json());
-    console.log('User task data:', userTaskData);
-    
     let html = '';
     
+    // Task Management Section
+    html += `<div class="task-management-section">`;
+    html += `<div class="section-header">`;
+    html += `<h3>任務管理</h3>`;
+    html += `<button class="btn-add" onclick="addNewTask()">新增任務</button>`;
+    html += `</div>`;
+    html += `<div class="task-list">`;
+    
+    if (allTasks.length === 0) {
+        html += `<p style="color: #7f8c8d; font-style: italic;">尚無任務</p>`;
+    } else {
+        allTasks.forEach(task => {
+            const isProtected = task.name === '每日運動';
+            html += `<div class="task-item">`;
+            html += `<div class="task-info">`;
+            html += `<div class="task-name">${task.name}</div>`;
+            if (task.isCommon) {
+                html += `<span class="badge badge-common">共同任務</span>`;
+            }
+            if (isProtected) {
+                html += `<span class="badge badge-protected">必要任務</span>`;
+            }
+            html += `</div>`;
+            html += `<div class="action-buttons">`;
+            if (!isProtected) {
+                html += `<button class="btn-edit" onclick="editTask(${task.id}, '${task.name}')">編輯</button>`;
+                html += `<button class="btn-delete" onclick="deleteTask(${task.id})">刪除</button>`;
+            }
+            html += `</div>`;
+            html += `</div>`;
+        });
+    }
+    
+    html += `</div>`;
+    html += `</div>`;
+    
+    // Task Assignment Section
+    html += `<div class="task-assignment-section">`;
+    html += `<h3>任務分配狀態</h3>`;
+    
+    const userTaskData = await fetch('/api/user-tasks').then(r => r.json());
+    
     for (const user of users) {
-        console.log(`Processing user: ${user.name}`);
         const userTasks = userTaskData
             .filter(ut => ut.userId === user.id)
             .map(ut => allTasks.find(t => t.id === ut.taskId))
-            .filter(t => t); // Remove undefined tasks
+            .filter(t => t);
         
-        console.log(`User ${user.name} tasks:`, userTasks);
-        
-        html += `<div class="user-section">`;
-        html += `<div class="user-header">`;
-        html += `<h4>${user.name}`;
-        if (user.isAdmin) {
-            html += `<span class="admin-badge">管理員</span>`;
-        }
-        html += `</h4>`;
-        html += `<div class="action-buttons">`;
-        html += `<button class="btn-add" onclick="addUser()">新增用戶</button>`;
-        html += `<button class="btn-edit" onclick="editUser(${user.id}, '${user.name}', ${user.isAdmin})">編輯</button>`;
-        html += `<button class="btn-delete" onclick="deleteUser(${user.id})">刪除</button>`;
-        html += `</div>`;
-        html += `</div>`;
-        html += `<div class="user-body">`;
-        html += `<div class="task-list">`;
-        
+        html += `<div class="user-task-status">`;
+        html += `<strong>${user.name}:</strong> `;
         if (userTasks.length === 0) {
-            html += `<p style="color: #7f8c8d; font-style: italic;">此用戶尚未分配任務</p>`;
+            html += `<span style="color: #7f8c8d;">無任務</span>`;
         } else {
-            userTasks.forEach(task => {
-                html += `<div class="task-item">`;
-                html += `<div class="task-name">${task.name}</div>`;
-                html += `<div class="action-buttons">`;
-                html += `<button class="btn-add" onclick="addTaskToUser(${user.id})">新增</button>`;
-                html += `<button class="btn-edit" onclick="editTask(${user.id}, ${task.id}, '${task.name}')">編輯</button>`;
-                html += `<button class="btn-delete" onclick="deleteTaskFromUser(${user.id}, ${task.id})">移除</button>`;
-                html += `<button class="btn-delete-task" onclick="deleteTask(${task.id})">完全刪除</button>`;
-                html += `</div>`;
-                html += `</div>`;
-            });
+            html += userTasks.map(t => t.name).join(', ');
         }
-        
-        html += `</div>`;
-        html += `</div>`;
         html += `</div>`;
     }
     
-    console.log('Generated HTML:', html);
+    html += `</div>`;
+    
     managementDiv.innerHTML = html;
 }
 
@@ -712,6 +721,12 @@ async function toggleUserTask(userId, taskId, assigned) {
 }
 
 async function editTask(taskId, currentName) {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以編輯任務');
+        return;
+    }
+    
     const newName = prompt('輸入新的任務名稱:', currentName);
     if (newName && newName !== currentName) {
         const response = await fetch(`/api/tasks/${taskId}`, {
@@ -722,9 +737,42 @@ async function editTask(taskId, currentName) {
         
         if (response.ok) {
             allTasks = await fetchTasks();
-            loadConfigPanel();
+            loadAdminConfigPanel();
             alert('任務已更新');
         }
+    }
+}
+
+async function addNewTask() {
+    // Check admin permission
+    if (!currentUser.isAdmin) {
+        alert('只有管理員可以新增任務');
+        return;
+    }
+    
+    const taskName = prompt('輸入新任務名稱:');
+    if (!taskName || !taskName.trim()) {
+        return;
+    }
+    
+    const isCommon = confirm('是否為共同任務？（所有用戶都會被分配此任務）');
+    
+    const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: taskName.trim(),
+            userId: currentUser.id,
+            isCommon: isCommon
+        })
+    });
+    
+    if (response.ok) {
+        allTasks = await fetchTasks();
+        loadAdminConfigPanel();
+        alert('任務已新增');
+    } else {
+        alert('新增任務失敗');
     }
 }
 
