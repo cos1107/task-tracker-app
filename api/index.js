@@ -441,6 +441,51 @@ app.get('/api/database', async (req, res) => {
   }
 });
 
+// Update database endpoint - saves custom data
+app.post('/api/update-database', async (req, res) => {
+  try {
+    console.log('📝 Updating database with custom data...');
+    const newData = req.body;
+    
+    // Basic validation
+    if (!newData || typeof newData !== 'object') {
+      return res.status(400).json({ error: 'Invalid data format' });
+    }
+    
+    const required = ['users', 'tasks', 'userTasks', 'completions'];
+    const missing = required.filter(key => !newData.hasOwnProperty(key));
+    
+    if (missing.length > 0) {
+      return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
+    }
+    
+    // Ensure all are arrays
+    required.forEach(field => {
+      if (!Array.isArray(newData[field])) {
+        return res.status(400).json({ error: `${field} must be an array` });
+      }
+    });
+    
+    await saveData(newData);
+    console.log('✅ Database updated successfully with custom data!');
+    
+    res.json({
+      success: true,
+      message: 'Database updated successfully',
+      data: {
+        users: newData.users.length,
+        tasks: newData.tasks.length,
+        userTasks: newData.userTasks.length,
+        completions: newData.completions.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Update failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Reset database endpoint
 app.post('/api/reset-database', async (req, res) => {
   try {

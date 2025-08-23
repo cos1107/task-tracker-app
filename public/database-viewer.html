@@ -140,6 +140,70 @@
             border-radius: 5px;
             margin-bottom: 20px;
         }
+        .editor-panel {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .editor-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .json-editor {
+            width: 100%;
+            min-height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            background: white;
+            resize: vertical;
+        }
+        .editor-controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        .btn-info:hover {
+            background: #138496;
+        }
+        .validation-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .validation-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .validation-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
     </style>
 </head>
 <body>
@@ -159,6 +223,22 @@
         <div id="message"></div>
 
         <div id="stats" class="stats"></div>
+
+        <!-- Database Editor Panel -->
+        <div class="editor-panel">
+            <div class="editor-title">
+                📝 Database Editor
+                <span style="font-size: 12px; color: #6c757d; font-weight: normal;">Edit the database directly and save changes</span>
+            </div>
+            <textarea id="jsonEditor" class="json-editor" placeholder="Loading database for editing..."></textarea>
+            <div class="editor-controls">
+                <button class="btn btn-info" onclick="formatJSON()">🔧 Format JSON</button>
+                <button class="btn btn-warning" onclick="validateJSON()">✅ Validate</button>
+                <button class="btn btn-success" onclick="saveToDatabase()">💾 Save to Database</button>
+                <button class="btn" onclick="resetEditor()">🔄 Reset Editor</button>
+            </div>
+            <div id="validationResult"></div>
+        </div>
 
         <div id="content" class="loading">Loading database...</div>
     </div>
@@ -277,8 +357,18 @@
                 html += '</div>';
                 
                 contentDiv.innerHTML = html;
+                
+                // Update the editor with current data
+                updateEditor();
             } catch (error) {
                 contentDiv.innerHTML = `<div class="error">Error loading database: ${error.message}</div>`;
+            }
+        }
+
+        function updateEditor() {
+            const editor = document.getElementById('jsonEditor');
+            if (currentData && editor) {
+                editor.value = JSON.stringify(currentData, null, 2);
             }
         }
 
@@ -322,6 +412,101 @@
             } catch (error) {
                 showMessage('Reset failed: ' + error.message, 'error');
             }
+        }
+
+        function formatJSON() {
+            const editor = document.getElementById('jsonEditor');
+            try {
+                const parsed = JSON.parse(editor.value);
+                editor.value = JSON.stringify(parsed, null, 2);
+                showValidationResult('JSON formatted successfully!', 'success');
+            } catch (error) {
+                showValidationResult('Invalid JSON: ' + error.message, 'error');
+            }
+        }
+
+        function validateJSON() {
+            const editor = document.getElementById('jsonEditor');
+            try {
+                const parsed = JSON.parse(editor.value);
+                
+                // Basic structure validation
+                const required = ['users', 'tasks', 'userTasks', 'completions'];
+                const missing = required.filter(key => !parsed.hasOwnProperty(key));
+                
+                if (missing.length > 0) {
+                    throw new Error(`Missing required fields: ${missing.join(', ')}`);
+                }
+                
+                // Check if arrays
+                required.forEach(field => {
+                    if (!Array.isArray(parsed[field])) {
+                        throw new Error(`${field} must be an array`);
+                    }
+                });
+                
+                // Basic data validation
+                if (parsed.users.some(u => !u.id || !u.name)) {
+                    throw new Error('All users must have id and name');
+                }
+                
+                if (parsed.tasks.some(t => !t.id || !t.name)) {
+                    throw new Error('All tasks must have id and name');
+                }
+                
+                showValidationResult(`✅ Valid JSON structure!\n\nData summary:\n- ${parsed.users.length} users\n- ${parsed.tasks.length} tasks\n- ${parsed.userTasks.length} user-task assignments\n- ${parsed.completions.length} completions`, 'success');
+            } catch (error) {
+                showValidationResult('❌ Validation failed: ' + error.message, 'error');
+            }
+        }
+
+        async function saveToDatabase() {
+            const editor = document.getElementById('jsonEditor');
+            
+            try {
+                // First validate
+                const parsed = JSON.parse(editor.value);
+                
+                if (!confirm('Are you sure you want to save these changes to the database? This will completely replace all existing data!')) {
+                    return;
+                }
+                
+                showMessage('Saving to database...', 'info');
+                
+                const response = await fetch('/api/update-database', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(parsed)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Database updated successfully!', 'success');
+                    currentData = parsed;
+                    loadDatabase(); // Refresh the view
+                } else {
+                    showMessage('Save failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                if (error instanceof SyntaxError) {
+                    showValidationResult('❌ Invalid JSON: ' + error.message, 'error');
+                } else {
+                    showMessage('Save failed: ' + error.message, 'error');
+                }
+            }
+        }
+
+        function resetEditor() {
+            updateEditor();
+            document.getElementById('validationResult').innerHTML = '';
+            showMessage('Editor reset to current database data', 'info');
+        }
+
+        function showValidationResult(text, type) {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.className = `validation-result validation-${type}`;
+            resultDiv.textContent = text;
         }
 
         function showMessage(text, type = 'info') {
