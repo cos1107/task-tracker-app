@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Statistics API</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .debug-section { margin: 20px 0; border: 1px solid #ccc; padding: 10px; }
+        .diff { background: #ffffcc; }
+    </style>
+</head>
+<body>
+    <h1>Statistics API Debug Tool</h1>
+    
+    <button onclick="testLocalhost()">Test Localhost API</button>
+    <button onclick="testVercel()">Test Vercel API</button>
+    <button onclick="compareResults()">Compare Results</button>
+    
+    <div class="debug-section">
+        <h3>Localhost Results:</h3>
+        <pre id="localhost-result">Click "Test Localhost API" button</pre>
+    </div>
+    
+    <div class="debug-section">
+        <h3>Vercel Results:</h3>
+        <pre id="vercel-result">Click "Test Vercel API" button</pre>
+    </div>
+    
+    <div class="debug-section">
+        <h3>Comparison:</h3>
+        <pre id="comparison-result">Click "Compare Results" button</pre>
+    </div>
+
+    <script>
+        let localhostData = null;
+        let vercelData = null;
+        
+        async function testLocalhost() {
+            try {
+                const response = await fetch('http://localhost:3000/api/statistics');
+                const data = await response.json();
+                localhostData = data;
+                document.getElementById('localhost-result').textContent = JSON.stringify(data, null, 2);
+                console.log('Localhost data:', data);
+            } catch (error) {
+                document.getElementById('localhost-result').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testVercel() {
+            const vercelUrl = prompt('Enter your Vercel URL (e.g., https://your-app.vercel.app):');
+            if (!vercelUrl) return;
+            
+            try {
+                const response = await fetch(vercelUrl + '/api/statistics');
+                const data = await response.json();
+                vercelData = data;
+                document.getElementById('vercel-result').textContent = JSON.stringify(data, null, 2);
+                console.log('Vercel data:', data);
+            } catch (error) {
+                document.getElementById('vercel-result').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        function compareResults() {
+            if (!localhostData || !vercelData) {
+                document.getElementById('comparison-result').textContent = 'Please test both APIs first';
+                return;
+            }
+            
+            const comparison = {
+                localhostMonths: localhostData.length,
+                vercelMonths: vercelData.length,
+                localhostCurrentMonth: localhostData[0] || null,
+                vercelCurrentMonth: vercelData[0] || null,
+                differences: []
+            };
+            
+            // Compare lengths
+            if (localhostData.length !== vercelData.length) {
+                comparison.differences.push(`Different number of months: localhost=${localhostData.length}, vercel=${vercelData.length}`);
+            }
+            
+            // Compare current month data
+            if (comparison.localhostCurrentMonth && comparison.vercelCurrentMonth) {
+                const lUsers = comparison.localhostCurrentMonth.users;
+                const vUsers = comparison.vercelCurrentMonth.users;
+                
+                lUsers.forEach((lUser, index) => {
+                    const vUser = vUsers[index];
+                    if (vUser && lUser.completionRate !== vUser.completionRate) {
+                        comparison.differences.push(`${lUser.userName}: localhost=${lUser.completionRate}%, vercel=${vUser.completionRate}%`);
+                    }
+                });
+            }
+            
+            document.getElementById('comparison-result').textContent = JSON.stringify(comparison, null, 2);
+        }
+    </script>
+</body>
+</html>

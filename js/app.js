@@ -313,10 +313,13 @@ async function loadStatistics() {
     const currentMonthData = yearlyStats[0];
     const stats = currentMonthData.users;
     
-    // Find the highest completion rate
-    const maxRate = Math.max(...stats.map(s => s.completionRate));
-    
     let html = '';
+    
+    // Current Month Section
+    html += `<div class="current-month-section">`;
+    html += `<h3>本月統計 (${currentMonthData.monthName})</h3>`;
+    html += `<div class="stats-grid">`;
+    
     stats.forEach(userStat => {
         const encouragementMessage = userStat.completionRate >= 50 ? 
             '妳真是太棒了!' : '加油...FIGHTING!';
@@ -337,6 +340,53 @@ async function loadStatistics() {
             </div>
         `;
     });
+    
+    html += `</div>`;
+    html += `</div>`;
+    
+    // Monthly History Section
+    if (yearlyStats.length > 1) {
+        html += `<div class="monthly-history-section">`;
+        html += `<h3>歷月統計記錄</h3>`;
+        html += `<div class="monthly-table">`;
+        html += `<table class="monthly-stats-table">`;
+        html += `<thead>`;
+        html += `<tr>`;
+        html += `<th>月份</th>`;
+        
+        // Add user columns
+        const allUsers = currentMonthData.users;
+        allUsers.forEach(user => {
+            html += `<th>${user.userName}</th>`;
+        });
+        
+        html += `</tr>`;
+        html += `</thead>`;
+        html += `<tbody>`;
+        
+        // Add each month's data
+        yearlyStats.forEach(monthData => {
+            if (monthData.daysInMonth > 0) {
+                html += `<tr>`;
+                html += `<td class="month-name">${monthData.monthName}</td>`;
+                
+                // Add completion rates for each user
+                allUsers.forEach(user => {
+                    const userStat = monthData.users.find(u => u.userId === user.userId);
+                    const completionRate = userStat ? userStat.completionRate : 0;
+                    const cellClass = completionRate >= 50 ? 'high-rate' : completionRate > 0 ? 'medium-rate' : 'low-rate';
+                    html += `<td class="completion-cell ${cellClass}">${completionRate}%</td>`;
+                });
+                
+                html += `</tr>`;
+            }
+        });
+        
+        html += `</tbody>`;
+        html += `</table>`;
+        html += `</div>`;
+        html += `</div>`;
+    }
     
     statsContainer.innerHTML = html;
 }
@@ -693,31 +743,154 @@ async function loadUserTaskManagement() {
     html += `</div>`;
     html += `</div>`;
     
-    // Task Assignment Section
+    // Task Assignment Matrix Section
     html += `<div class="task-assignment-section">`;
-    html += `<h3>任務分配狀態</h3>`;
+    html += `<div class="section-header">`;
+    html += `<h3>用戶任務分配管理</h3>`;
+    html += `<div class="matrix-description">`;
+    html += `<p>點擊勾選框來指派或取消用戶的任務分配</p>`;
+    html += `</div>`;
+    html += `</div>`;
     
     const userTaskData = await fetch('/api/user-tasks').then(r => r.json());
     
-    for (const user of users) {
-        const userTasks = userTaskData
-            .filter(ut => ut.userId === user.id)
-            .map(ut => allTasks.find(t => t.id === ut.taskId))
-            .filter(t => t);
-        
-        html += `<div class="user-task-status">`;
-        html += `<strong>${user.name}:</strong> `;
-        if (userTasks.length === 0) {
-            html += `<span style="color: #7f8c8d;">無任務</span>`;
-        } else {
-            html += userTasks.map(t => t.name).join(', ');
-        }
-        html += `</div>`;
-    }
+    // Create interactive user-task assignment matrix
+    html += `<div class="user-task-matrix">`;
+    html += `<table class="assignment-matrix-table">`;
+    html += `<thead>`;
+    html += `<tr>`;
+    html += `<th class="user-header">用戶 / 任務</th>`;
     
+    // Add task headers
+    allTasks.forEach(task => {
+        const isProtected = task.name === '每日運動';
+        html += `<th class="task-header ${isProtected ? 'protected-task' : ''}">`;
+        html += `${task.name}`;
+        if (isProtected) {
+            html += `<br><small>(必要)</small>`;
+        }
+        html += `</th>`;
+    });
+    
+    html += `</tr>`;
+    html += `</thead>`;
+    html += `<tbody>`;
+    
+    // Add user rows
+    users.forEach(user => {
+        html += `<tr>`;
+        html += `<td class="user-name-cell">`;
+        html += `<strong>${user.name}</strong>`;
+        if (user.isAdmin) {
+            html += `<br><small class="admin-badge">管理員</small>`;
+        }
+        html += `</td>`;
+        
+        // Add task assignment checkboxes for each user
+        allTasks.forEach(task => {
+            const isAssigned = userTaskData.some(ut => ut.userId === user.id && ut.taskId === task.id);
+            const isProtected = task.name === '每日運動';
+            
+            html += `<td class="assignment-cell">`;
+            html += `<input type="checkbox" `;
+            html += `id="assign-${user.id}-${task.id}" `;
+            html += `${isAssigned ? 'checked' : ''} `;
+            html += `${isProtected ? 'disabled' : ''} `;
+            html += `onchange="toggleUserTaskAssignment(${user.id}, ${task.id}, this.checked)" `;
+            html += `class="assignment-checkbox ${isProtected ? 'protected-checkbox' : ''}" />`;
+            html += `<label for="assign-${user.id}-${task.id}" class="checkbox-label"></label>`;
+            html += `</td>`;
+        });
+        
+        html += `</tr>`;
+    });
+    
+    html += `</tbody>`;
+    html += `</table>`;
+    html += `</div>`;
     html += `</div>`;
     
     managementDiv.innerHTML = html;
+}
+
+async function toggleUserTaskAssignment(userId, taskId, assigned) {
+    try {
+        // Check admin permission
+        if (!currentUser.isAdmin) {
+            alert('只有管理員可以修改任務分配');
+            return;
+        }
+        
+        const method = assigned ? 'POST' : 'DELETE';
+        const response = await fetch('/api/user-tasks', {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, taskId })
+        });
+        
+        if (response.ok) {
+            console.log(`Task assignment updated: User ${userId}, Task ${taskId}, Assigned: ${assigned}`);
+            // Show success message
+            const userElement = document.querySelector(`#assign-${userId}-${taskId}`);
+            const user = users.find(u => u.id === userId);
+            const task = allTasks.find(t => t.id === taskId);
+            
+            if (userElement) {
+                userElement.style.backgroundColor = assigned ? '#d4edda' : '#f8d7da';
+                setTimeout(() => {
+                    userElement.style.backgroundColor = '';
+                }, 1000);
+            }
+            
+            // Show toast message
+            showToastMessage(
+                assigned ? 
+                `已為 ${user.name} 指派任務：${task.name}` : 
+                `已取消 ${user.name} 的任務：${task.name}`,
+                'success'
+            );
+        } else {
+            const errorData = await response.json();
+            console.error('Failed to update task assignment:', errorData);
+            alert('任務分配更新失敗：' + (errorData.error || 'Unknown error'));
+            // Revert checkbox state
+            const checkbox = document.querySelector(`#assign-${userId}-${taskId}`);
+            if (checkbox) {
+                checkbox.checked = !assigned;
+            }
+        }
+    } catch (error) {
+        console.error('Error toggling user task assignment:', error);
+        alert('網路錯誤，請檢查連線後再試');
+        // Revert checkbox state
+        const checkbox = document.querySelector(`#assign-${userId}-${taskId}`);
+        if (checkbox) {
+            checkbox.checked = !assigned;
+        }
+    }
+}
+
+function showToastMessage(message, type = 'info') {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast-message');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-message toast-${type}`;
+    toast.textContent = message;
+    
+    // Add toast to the page
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 3000);
 }
 
 async function toggleUserTask(userId, taskId, assigned) {
@@ -1039,32 +1212,6 @@ async function addTaskToUser(userId) {
     }
 }
 
-async function editTask(userId, taskId, currentName) {
-    // Check admin permission
-    if (!currentUser.isAdmin) {
-        alert('只有管理員可以編輯任務');
-        return;
-    }
-    
-    const newName = prompt('輸入新的任務名稱:', currentName);
-    if (!newName || !newName.trim() || newName === currentName) {
-        return;
-    }
-    
-    const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim() })
-    });
-    
-    if (response.ok) {
-        allTasks = await fetchTasks();
-        loadAdminConfigPanel();
-        alert('任務已更新');
-    } else {
-        alert('更新任務失敗');
-    }
-}
 
 async function deleteTaskFromUser(userId, taskId) {
     // Check admin permission
