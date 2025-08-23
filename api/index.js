@@ -141,7 +141,12 @@ async function saveData(data) {
       console.log('Data saved successfully to file');
     } else {
       // Vercel without KV - data will not persist, but app continues working
-      console.log('Warning: No persistent storage available on Vercel - data will not persist between requests');
+      console.log('⚠️ Warning: No persistent storage available on Vercel');
+      console.log('Environment check:');
+      console.log('- VERCEL:', !!process.env.VERCEL);
+      console.log('- KV_REST_API_URL:', !!process.env.KV_REST_API_URL);
+      console.log('- kv module loaded:', !!kv);
+      console.log('Data will not persist between requests - please set up Vercel KV');
     }
   } catch (error) {
     console.error('Error saving data:', error);
@@ -263,29 +268,53 @@ app.get('/api/completions/:userId', async (req, res) => {
 });
 
 app.post('/api/completions', async (req, res) => {
-  const { userId, taskId, date, completed } = req.body;
-  const data = await loadData();
-  
-  const week = getWeekNumber(new Date(date));
-  
-  const existingIndex = data.completions.findIndex(c => 
-    c.userId === userId && c.taskId === taskId && c.date === date
-  );
-  
-  if (existingIndex !== -1) {
-    data.completions[existingIndex].completed = completed;
-  } else {
-    data.completions.push({
-      userId,
-      taskId,
-      date,
-      completed,
-      week
+  try {
+    const { userId, taskId, date, completed } = req.body;
+    
+    // Validate input
+    if (!userId || !taskId || !date || completed === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    console.log('Saving completion:', { userId, taskId, date, completed });
+    const data = await loadData();
+    
+    const week = getWeekNumber(new Date(date));
+    
+    const existingIndex = data.completions.findIndex(c => 
+      c.userId === userId && c.taskId === taskId && c.date === date
+    );
+    
+    if (existingIndex !== -1) {
+      // Update existing completion
+      data.completions[existingIndex].completed = completed;
+      data.completions[existingIndex].updatedAt = new Date().toISOString();
+      console.log('Updated existing completion');
+    } else {
+      // Create new completion
+      data.completions.push({
+        userId,
+        taskId,
+        date,
+        completed,
+        week,
+        createdAt: new Date().toISOString()
+      });
+      console.log('Created new completion');
+    }
+    
+    await saveData(data);
+    console.log('Completion saved successfully');
+    
+    res.json({ 
+      success: true,
+      message: 'Completion saved successfully',
+      completion: data.completions[existingIndex !== -1 ? existingIndex : data.completions.length - 1]
     });
+  } catch (error) {
+    console.error('Error saving completion:', error);
+    res.status(500).json({ error: 'Failed to save completion' });
   }
-  
-  await saveData(data);
-  res.json({ success: true });
 });
 
 app.get('/api/statistics', async (req, res) => {

@@ -67,5 +67,56 @@
       "taskId": 1
     }
   ],
-  "completions": []
+  "completions": [
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-08-22",
+      "completed": true,
+      "week": 34,
+      "createdAt": "2025-08-22T17:54:28.391Z"
+    },
+    {
+      "userId": 1,
+      "taskId": 1,
+      "date": "2025-08-23",
+      "completed": true,
+      "week": 34,
+      "createdAt": "2025-08-22T17:55:24.225Z"
+    },
+    {
+      "userId": 3,
+      "taskId": 3,
+      "date": "2025-08-23",
+      "completed": true,
+      "week": 34,
+      "createdAt": "2025-08-22T17:55:54.575Z",
+      "updatedAt": "2025-08-23T04:33:43.148Z"
+    },
+    {
+      "userId": 3,
+      "taskId": 1,
+      "date": "2025-08-23",
+      "completed": true,
+      "week": 34,
+      "createdAt": "2025-08-22T17:55:55.455Z",
+      "updatedAt": "2025-08-23T04:33:43.732Z"
+    },
+    {
+      "userId": 2,
+      "taskId": 1,
+      "date": "2025-08-23",
+      "completed": true,
+      "week": 34,
+      "createdAt": "2025-08-23T01:46:44.197Z"
+    },
+    {
+      "userId": 4,
+      "taskId": 1,
+      "date": "2025-08-23",
+      "completed": true,
+      "week": 34,
+      "createdAt": "2025-08-23T04:34:04.277Z"
+    }
+  ]
 }
