@@ -274,8 +274,11 @@ async function toggleTask(taskId, date, completed) {
 }
 
 async function fetchCompletions(userId) {
+    console.log(`Fetching completions for user ID: ${userId}`);
     const response = await fetch(`/api/completions/${userId}`);
-    return response.json();
+    const completions = await response.json();
+    console.log(`Received ${completions.length} completions for user ${userId}:`, completions);
+    return completions;
 }
 
 async function loadMyProgress() {
