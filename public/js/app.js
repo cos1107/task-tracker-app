@@ -301,43 +301,78 @@ async function loadTeamProgress() {
 }
 
 async function loadStatistics() {
+    // Update the title to show yearly view
+    const currentYear = new Date().getFullYear();
+    const titleElement = document.getElementById('statistics-title');
+    if (titleElement) {
+        titleElement.textContent = `${currentYear}年統計`;
+    }
+    
     const statsContainer = document.getElementById('stats-container');
     const yearlyStats = await fetch('/api/statistics').then(r => r.json());
     
-    // Get current month stats (first item in the array)
-    const currentMonthStats = yearlyStats[0];
-    
-    if (!currentMonthStats || !currentMonthStats.users) {
+    if (yearlyStats.length === 0) {
         statsContainer.innerHTML = '<p>暫無統計資料</p>';
         return;
     }
     
-    let html = `<h3>${currentMonthStats.monthName} 統計</h3>`;
-    html += '<div class="stats-grid">';
+    // Get all users from the current month data
+    const currentMonthData = yearlyStats.find(month => month.isCurrent) || yearlyStats[0];
+    const users = currentMonthData.users;
     
-    // Show statistics for ALL users
-    currentMonthStats.users.forEach(userStat => {
+    let html = '';
+    
+    // First, display all users in the top row
+    html += `<div class="users-overview-section">`;
+    html += `<div class="users-grid">`;
+    
+    users.forEach(userStat => {
         const encouragementMessage = userStat.completionRate >= 50 ? 
             '妳真是太棒了!' : '加油...FIGHTING!';
         
-        // Handle undefined combo
-        const comboCount = userStat.combo || 0;
-        
-        // NEW REWARD POLICY: Red heart right after combo text if combo > 2
-        const heartIcon = comboCount > 2 ? ' ❤️' : '';
+        const completedDays = userStat.completedDays || userStat.completedTasks || 0;
+        const heartIcon = userStat.completionRate > 50 ? ' ❤️' : '';
         
         html += `
             <div class="stat-card">
                 <h3>${userStat.userName}</h3>
                 <div class="stat-value">${userStat.completionRate}%</div>
                 <div class="stat-label">運動完成率</div>
-                <div class="combo-text">連續${comboCount}天運動${heartIcon}</div>
+                <div class="combo-text">連續${completedDays}天運動${heartIcon}</div>
                 <div class="encouragement-message">${encouragementMessage}</div>
             </div>
         `;
     });
     
-    html += '</div>';
+    html += `</div>`;
+    html += `</div>`;
+    
+    // Then display monthly breakdown
+    html += `<div class="monthly-breakdown-section">`;
+    html += `<h3>每月統計詳情</h3>`;
+    html += `<div class="monthly-stats">`;
+    
+    yearlyStats.forEach(monthData => {
+        if (monthData.daysInMonth > 0) {
+            html += `<div class="month-section">`;
+            html += `<h4>${monthData.monthName}</h4>`;
+            html += `<div class="month-users-grid">`;
+            
+            monthData.users.forEach(user => {
+                html += `<div class="month-user-stat">`;
+                html += `<span class="user-name">${user.userName}:</span>`;
+                html += `<span class="completion-rate">${user.completionRate}%</span>`;
+                html += `</div>`;
+            });
+            
+            html += `</div>`;
+            html += `</div>`;
+        }
+    });
+    
+    html += `</div>`;
+    html += `</div>`;
+    
     statsContainer.innerHTML = html;
 }
 
