@@ -109,11 +109,14 @@ function showUserSelection() {
 
 async function selectUser(user) {
     console.log('Selecting user:', user);
+    console.log('User ID being stored:', user.id);
+    console.log('User name:', user.name);
     try {
         currentUser = user;
         localStorage.setItem('userId', user.id);
+        console.log('localStorage userId set to:', localStorage.getItem('userId'));
         tasks = await fetchUserTasks(user.id);
-        console.log('User tasks loaded:', tasks);
+        console.log('User tasks loaded for user ID', user.id, ':', tasks);
         showMainApp();
     } catch (error) {
         console.error('Error selecting user:', error);
@@ -222,15 +225,26 @@ async function loadDailyTasks() {
 
 async function toggleTask(taskId, date, completed) {
     try {
+        console.log('=== TOGGLE TASK DEBUG ===');
+        console.log('currentUser:', currentUser);
+        console.log('currentUser.id:', currentUser.id);
+        console.log('currentUser.name:', currentUser.name);
+        console.log('taskId:', taskId);
+        console.log('date:', date);
+        console.log('completed:', completed);
+        
+        const payload = {
+            userId: currentUser.id,
+            taskId,
+            date,
+            completed
+        };
+        console.log('Sending payload:', payload);
+        
         const response = await fetch('/api/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: currentUser.id,
-                taskId,
-                date,
-                completed
-            })
+            body: JSON.stringify(payload)
         });
         
         if (!response.ok) {
