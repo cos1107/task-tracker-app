@@ -10,10 +10,12 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-const DATA_FILE = path.join(__dirname, '../data/database.json');
+// Use /tmp directory for Vercel serverless functions (temporary storage)
+const DATA_FILE = process.env.VERCEL 
+  ? path.join('/tmp', 'database.json')
+  : path.join(__dirname, '../data/database.json');
 
-// In-memory storage for Vercel serverless environment
-let memoryStore = null;
+// Remove in-memory storage - use persistent file storage instead
 
 // Utility function to get local date string without timezone issues
 function getLocalDateString(date = new Date()) {
@@ -24,22 +26,14 @@ function getLocalDateString(date = new Date()) {
 }
 
 async function loadData() {
-  // If we already have data in memory, use it
-  if (memoryStore) {
-    // Still ensure mandatory task exists even with cached data
-    await ensureMandatoryTask(memoryStore);
-    return memoryStore;
-  }
-
   try {
-    // Try to load from file first (for initial data)
     const data = await fs.readFile(DATA_FILE, 'utf-8');
-    memoryStore = JSON.parse(data);
+    const parsedData = JSON.parse(data);
     
     // Ensure "每日運動" task always exists
-    await ensureMandatoryTask(memoryStore);
+    await ensureMandatoryTask(parsedData);
     
-    return memoryStore;
+    return parsedData;
   } catch (error) {
     // If file doesn't exist, create default data
     const defaultData = {
@@ -60,7 +54,6 @@ async function loadData() {
       ],
       completions: []
     };
-    memoryStore = defaultData;
     await saveData(defaultData);
     return defaultData;
   }
@@ -95,15 +88,17 @@ async function ensureMandatoryTask(data) {
 }
 
 async function saveData(data) {
-  // Save to memory store (this persists during the serverless function lifecycle)
-  memoryStore = data;
-  
-  // Try to save to file as well (won't work on Vercel, but useful for local development)
   try {
+    // Ensure data directory exists
+    const dataDir = path.dirname(DATA_FILE);
+    await fs.mkdir(dataDir, { recursive: true });
+    
+    // Write data with proper error handling
     await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+    console.log('Data saved successfully to file');
   } catch (error) {
-    // Ignore file write errors in serverless environment
-    console.log('File write not available in serverless environment, using memory store');
+    console.error('Error saving data to file:', error);
+    throw error;
   }
 }
 
