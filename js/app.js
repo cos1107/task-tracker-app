@@ -937,7 +937,7 @@ async function addNewTask() {
         return;
     }
     
-    const isCommon = confirm('是否為共同任務？（所有用戶都會被分配此任務）');
+    const isCommon = await showYesNoDialog('是否為共同任務？（所有用戶都會被分配此任務）');
     
     const response = await fetch('/api/tasks', {
         method: 'POST',
@@ -1249,4 +1249,84 @@ function logout() {
     
     showUserSelection();
 }
+
+// Custom Yes/No dialog function
+function showYesNoDialog(message) {
+    return new Promise((resolve) => {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+        
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            text-align: center;
+        `;
+        
+        // Add message
+        const messageEl = document.createElement('p');
+        messageEl.textContent = message;
+        messageEl.style.cssText = 'margin: 0 0 20px 0; font-size: 16px;';
+        dialog.appendChild(messageEl);
+        
+        // Add buttons
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: center;';
+        
+        const yesBtn = document.createElement('button');
+        yesBtn.textContent = '是';
+        yesBtn.style.cssText = `
+            padding: 10px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        `;
+        yesBtn.onclick = () => {
+            document.body.removeChild(overlay);
+            resolve(true);
+        };
+        
+        const noBtn = document.createElement('button');
+        noBtn.textContent = '否';
+        noBtn.style.cssText = `
+            padding: 10px 30px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        `;
+        noBtn.onclick = () => {
+            document.body.removeChild(overlay);
+            resolve(false);
+        };
+        
+        buttonContainer.appendChild(yesBtn);
+        buttonContainer.appendChild(noBtn);
+        dialog.appendChild(buttonContainer);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+    });
+}
+
 console.log('FRONTEND JavaScript loaded - 2025年08月17日 02時00分00秒');

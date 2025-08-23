@@ -1268,7 +1268,7 @@ h1 {
 
 .monthly-history-section {
     margin-top: 40px;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #4fc3f7 0%, #66bb6a 100%);
     border-radius: 20px;
     padding: 35px;
     box-shadow: 0 15px 35px rgba(0,0,0,0.2);
@@ -1561,7 +1561,7 @@ h1 {
 }
 
 .admin-badge {
-    color: #e67e22;
+    color: white;
     font-weight: normal;
     font-style: italic;
 }
