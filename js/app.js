@@ -302,13 +302,21 @@ async function loadTeamProgress() {
 
 async function loadStatistics() {
     const statsContainer = document.getElementById('stats-container');
-    const stats = await fetch('/api/statistics').then(r => r.json());
+    const yearlyStats = await fetch('/api/statistics').then(r => r.json());
     
-    // Find the highest completion rate
-    const maxRate = Math.max(...stats.map(s => s.completionRate));
+    // Get current month stats (first item in the array)
+    const currentMonthStats = yearlyStats[0];
     
-    let html = '';
-    stats.forEach(userStat => {
+    if (!currentMonthStats || !currentMonthStats.users) {
+        statsContainer.innerHTML = '<p>暫無統計資料</p>';
+        return;
+    }
+    
+    let html = `<h3>${currentMonthStats.monthName} 統計</h3>`;
+    html += '<div class="stats-grid">';
+    
+    // Show statistics for ALL users
+    currentMonthStats.users.forEach(userStat => {
         const encouragementMessage = userStat.completionRate >= 50 ? 
             '妳真是太棒了!' : '加油...FIGHTING!';
         
@@ -329,6 +337,7 @@ async function loadStatistics() {
         `;
     });
     
+    html += '</div>';
     statsContainer.innerHTML = html;
 }
 
