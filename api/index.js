@@ -407,6 +407,46 @@ app.post('/api/completions', async (req, res) => {
   }
 });
 
+// Test endpoint to manually add a completion
+app.get('/api/test-completion', async (req, res) => {
+  try {
+    console.log('Test completion endpoint called');
+    const data = await loadData();
+    
+    // Add a test completion for user 1, task 1, today
+    const testCompletion = {
+      userId: 1,
+      taskId: 1,
+      date: getLocalDateString(),
+      completed: true,
+      week: getWeekNumber(new Date()),
+      createdAt: new Date().toISOString()
+    };
+    
+    console.log('Adding test completion:', testCompletion);
+    data.completions.push(testCompletion);
+    
+    await saveData(data);
+    
+    // Verify it was saved
+    const verifyData = await loadData();
+    const savedCompletion = verifyData.completions.find(c => 
+      c.userId === 1 && c.taskId === 1 && c.date === getLocalDateString()
+    );
+    
+    res.json({
+      success: true,
+      message: 'Test completion added',
+      testCompletion,
+      verified: !!savedCompletion,
+      totalCompletions: verifyData.completions.length
+    });
+  } catch (error) {
+    console.error('Test completion error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/statistics', async (req, res) => {
   const data = await loadData();
   const currentYear = new Date().getFullYear();
