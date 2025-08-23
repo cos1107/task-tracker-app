@@ -201,6 +201,7 @@ async function saveData(data) {
 app.get('/api/health', async (req, res) => {
   let testResult = null;
   let currentData = null;
+  let connectionInfo = null;
   
   // Try to test Redis connection if available
   if (redis) {
@@ -209,6 +210,17 @@ app.get('/api/health', async (req, res) => {
       const testValue = await redis.get('test-key');
       testResult = testValue === 'test-value' ? 'success' : 'failed';
       await redis.del('test-key');
+      
+      // Get connection info (URL without sensitive token)
+      if (process.env.UPSTASH_REDIS_REST_URL) {
+        const url = new URL(process.env.UPSTASH_REDIS_REST_URL);
+        connectionInfo = {
+          host: url.hostname,
+          database_name: url.hostname.split('.')[0], // Extract database name from URL
+          full_host: url.hostname,
+          protocol: url.protocol
+        };
+      }
       
       // Also check current data
       currentData = await redis.get('task-tracker-data');
@@ -239,7 +251,8 @@ app.get('/api/health', async (req, res) => {
       redis_client_loaded: !!redis,
       storage_type: redis ? (process.env.UPSTASH_REDIS_REST_URL ? 'upstash' : 'vercel-kv') : 'file-system',
       redis_test: testResult,
-      current_data: currentData
+      current_data: currentData,
+      connection_info: connectionInfo
     },
     timestamp: new Date().toISOString()
   });
