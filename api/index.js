@@ -407,6 +407,27 @@ app.post('/api/completions', async (req, res) => {
   }
 });
 
+// Database viewer endpoint - shows all data
+app.get('/api/database', async (req, res) => {
+  try {
+    const data = await loadData();
+    res.json({
+      message: 'Current database contents',
+      timestamp: new Date().toISOString(),
+      data: data,
+      stats: {
+        users: data.users?.length || 0,
+        tasks: data.tasks?.length || 0,
+        userTasks: data.userTasks?.length || 0,
+        completions: data.completions?.length || 0
+      }
+    });
+  } catch (error) {
+    console.error('Database viewer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Test endpoint to manually add a completion
 app.get('/api/test-completion', async (req, res) => {
   try {

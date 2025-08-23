@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Viewer - Task Tracker</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .info {
+            color: #666;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #667eea;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .data-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        .json-viewer {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Database Viewer</h1>
+        <div class="info">
+            This page shows all data stored in the Task Tracker database. 
+            You can view all users, tasks, assignments, and completion records.
+        </div>
+
+        <div class="button-group">
+            <button class="btn" onclick="loadDatabase()">🔄 Refresh Data</button>
+            <button class="btn btn-success" onclick="downloadJSON()">💾 Download JSON</button>
+            <button class="btn btn-danger" onclick="clearCompletions()">🗑️ Clear All Completions</button>
+        </div>
+
+        <div id="message"></div>
+
+        <div id="stats" class="stats"></div>
+
+        <div id="content" class="loading">Loading database...</div>
+    </div>
+
+    <script>
+        let currentData = null;
+
+        async function loadDatabase() {
+            const contentDiv = document.getElementById('content');
+            const statsDiv = document.getElementById('stats');
+            contentDiv.innerHTML = '<div class="loading">Loading database...</div>';
+            
+            try {
+                const response = await fetch('/api/database');
+                const result = await response.json();
+                currentData = result.data;
+                
+                // Display stats
+                statsDiv.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${result.stats.users}</div>
+                        <div class="stat-label">Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${result.stats.tasks}</div>
+                        <div class="stat-label">Tasks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${result.stats.userTasks}</div>
+                        <div class="stat-label">Assignments</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${result.stats.completions}</div>
+                        <div class="stat-label">Completions</div>
+                    </div>
+                `;
+                
+                // Display data tables
+                let html = '';
+                
+                // Users table
+                html += '<div class="section">';
+                html += '<div class="section-title">👥 Users</div>';
+                html += '<table class="data-table">';
+                html += '<thead><tr><th>ID</th><th>Name</th><th>Admin</th></tr></thead>';
+                html += '<tbody>';
+                result.data.users.forEach(user => {
+                    html += `<tr>
+                        <td>${user.id}</td>
+                        <td>${user.name}</td>
+                        <td>${user.isAdmin ? '✅ Yes' : '❌ No'}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div>';
+                
+                // Tasks table
+                html += '<div class="section">';
+                html += '<div class="section-title">📝 Tasks</div>';
+                html += '<table class="data-table">';
+                html += '<thead><tr><th>ID</th><th>Name</th><th>Common</th><th>Created</th></tr></thead>';
+                html += '<tbody>';
+                result.data.tasks.forEach(task => {
+                    html += `<tr>
+                        <td>${task.id}</td>
+                        <td>${task.name}</td>
+                        <td>${task.isCommon ? '✅ Yes' : '❌ No'}</td>
+                        <td>${new Date(task.createdAt).toLocaleDateString()}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div>';
+                
+                // User-Task Assignments
+                html += '<div class="section">';
+                html += '<div class="section-title">🔗 User-Task Assignments</div>';
+                html += '<table class="data-table">';
+                html += '<thead><tr><th>User</th><th>Task</th></tr></thead>';
+                html += '<tbody>';
+                result.data.userTasks.forEach(ut => {
+                    const user = result.data.users.find(u => u.id === ut.userId);
+                    const task = result.data.tasks.find(t => t.id === ut.taskId);
+                    html += `<tr>
+                        <td>${user ? user.name : 'Unknown'} (ID: ${ut.userId})</td>
+                        <td>${task ? task.name : 'Unknown'} (ID: ${ut.taskId})</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div>';
+                
+                // Completions table
+                html += '<div class="section">';
+                html += '<div class="section-title">✅ Completions</div>';
+                if (result.data.completions.length > 0) {
+                    html += '<table class="data-table">';
+                    html += '<thead><tr><th>User</th><th>Task</th><th>Date</th><th>Completed</th><th>Created At</th></tr></thead>';
+                    html += '<tbody>';
+                    result.data.completions.forEach(comp => {
+                        const user = result.data.users.find(u => u.id === comp.userId);
+                        const task = result.data.tasks.find(t => t.id === comp.taskId);
+                        html += `<tr>
+                            <td>${user ? user.name : 'Unknown'}</td>
+                            <td>${task ? task.name : 'Unknown'}</td>
+                            <td>${comp.date}</td>
+                            <td>${comp.completed ? '✅' : '❌'}</td>
+                            <td>${new Date(comp.createdAt).toLocaleString()}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                } else {
+                    html += '<p>No completions recorded yet.</p>';
+                }
+                html += '</div>';
+                
+                // Raw JSON viewer
+                html += '<div class="section">';
+                html += '<div class="section-title">📄 Raw JSON Data</div>';
+                html += '<div class="json-viewer">' + JSON.stringify(result.data, null, 2) + '</div>';
+                html += '</div>';
+                
+                contentDiv.innerHTML = html;
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error">Error loading database: ${error.message}</div>`;
+            }
+        }
+
+        function downloadJSON() {
+            if (!currentData) {
+                showMessage('No data loaded yet', 'error');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(currentData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `task-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            showMessage('Database downloaded successfully', 'success');
+        }
+
+        async function clearCompletions() {
+            if (!confirm('Are you sure you want to clear ALL completion records? This cannot be undone!')) {
+                return;
+            }
+            
+            showMessage('This feature requires manual implementation in the API', 'error');
+            // You would need to add an API endpoint to clear completions
+        }
+
+        function showMessage(text, type = 'info') {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type;
+            messageDiv.textContent = text;
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = '';
+            }, 5000);
+        }
+
+        // Load database on page load
+        loadDatabase();
+    </script>
+</body>
+</html>
