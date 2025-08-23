@@ -3,6 +3,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs').promises;
+const { kv } = require('@vercel/kv');
 
 const app = express();
 
@@ -27,36 +28,50 @@ function getLocalDateString(date = new Date()) {
 
 async function loadData() {
   try {
-    const data = await fs.readFile(DATA_FILE, 'utf-8');
-    const parsedData = JSON.parse(data);
-    
-    // Ensure "每日運動" task always exists
-    await ensureMandatoryTask(parsedData);
-    
-    return parsedData;
+    // Try to load from Vercel KV first (production)
+    if (process.env.VERCEL) {
+      console.log('Loading data from Vercel KV...');
+      const data = await kv.get('task-tracker-data');
+      if (data) {
+        console.log('Data loaded from KV successfully');
+        await ensureMandatoryTask(data);
+        return data;
+      }
+      console.log('No data found in KV, will create default data');
+    } else {
+      // Local development: use file system
+      console.log('Loading data from file system...');
+      const fileData = await fs.readFile(DATA_FILE, 'utf-8');
+      const parsedData = JSON.parse(fileData);
+      await ensureMandatoryTask(parsedData);
+      return parsedData;
+    }
   } catch (error) {
-    // If file doesn't exist, create default data
-    const defaultData = {
-      users: [
-        { id: 1, name: "Cosine", isAdmin: true },
-        { id: 2, name: "Iris", isAdmin: false },
-        { id: 3, name: "Anna", isAdmin: false },
-        { id: 4, name: "Rita", isAdmin: false }
-      ],
-      tasks: [
-        { id: 1, name: "每日運動", isCommon: true, createdAt: new Date().toISOString() }
-      ],
-      userTasks: [
-        { userId: 1, taskId: 1 },
-        { userId: 2, taskId: 1 },
-        { userId: 3, taskId: 1 },
-        { userId: 4, taskId: 1 }
-      ],
-      completions: []
-    };
-    await saveData(defaultData);
-    return defaultData;
+    console.log('Error loading data:', error.message);
   }
+  
+  // Create default data if nothing was found
+  console.log('Creating default data...');
+  const defaultData = {
+    users: [
+      { id: 1, name: "Cosine", isAdmin: true },
+      { id: 2, name: "Iris", isAdmin: false },
+      { id: 3, name: "Anna", isAdmin: false },
+      { id: 4, name: "Rita", isAdmin: false }
+    ],
+    tasks: [
+      { id: 1, name: "每日運動", isCommon: true, createdAt: new Date().toISOString() }
+    ],
+    userTasks: [
+      { userId: 1, taskId: 1 },
+      { userId: 2, taskId: 1 },
+      { userId: 3, taskId: 1 },
+      { userId: 4, taskId: 1 }
+    ],
+    completions: []
+  };
+  await saveData(defaultData);
+  return defaultData;
 }
 
 async function ensureMandatoryTask(data) {
@@ -89,15 +104,21 @@ async function ensureMandatoryTask(data) {
 
 async function saveData(data) {
   try {
-    // Ensure data directory exists
-    const dataDir = path.dirname(DATA_FILE);
-    await fs.mkdir(dataDir, { recursive: true });
-    
-    // Write data with proper error handling
-    await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
-    console.log('Data saved successfully to file');
+    if (process.env.VERCEL) {
+      // Production: Save to Vercel KV
+      console.log('Saving data to Vercel KV...');
+      await kv.set('task-tracker-data', data);
+      console.log('Data saved successfully to Vercel KV');
+    } else {
+      // Local development: Save to file system
+      console.log('Saving data to file system...');
+      const dataDir = path.dirname(DATA_FILE);
+      await fs.mkdir(dataDir, { recursive: true });
+      await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+      console.log('Data saved successfully to file');
+    }
   } catch (error) {
-    console.error('Error saving data to file:', error);
+    console.error('Error saving data:', error);
     throw error;
   }
 }
