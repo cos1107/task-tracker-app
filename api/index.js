@@ -441,6 +441,110 @@ app.get('/api/database', async (req, res) => {
   }
 });
 
+// Reset database endpoint
+app.post('/api/reset-database', async (req, res) => {
+  try {
+    console.log('🔄 Resetting database...');
+    
+    // New clean data structure
+    const newData = {
+      users: [
+        { id: 1, name: "Cosine", isAdmin: true },
+        { id: 2, name: "Iris", isAdmin: false },
+        { id: 3, name: "Anna", isAdmin: false },
+        { id: 4, name: "Rita", isAdmin: false }
+      ],
+      tasks: [
+        { id: 1, name: "每日運動", isCommon: true, createdAt: new Date().toISOString() },
+        { id: 2, name: "吃藥check", isCommon: false, createdAt: new Date().toISOString() },
+        { id: 3, name: "每日保健品", isCommon: false, createdAt: new Date().toISOString() }
+      ],
+      userTasks: [
+        // 每日運動 for everyone
+        { userId: 1, taskId: 1 },
+        { userId: 2, taskId: 1 },
+        { userId: 3, taskId: 1 },
+        { userId: 4, taskId: 1 },
+        // 吃藥check only for Iris
+        { userId: 2, taskId: 2 },
+        // 每日保健品 only for Anna
+        { userId: 3, taskId: 3 }
+      ],
+      completions: [
+        // Cosine - 每日運動 on 8/18, 8/19, 8/21
+        {
+          userId: 1,
+          taskId: 1,
+          date: "2025-08-18",
+          completed: true,
+          week: getWeekNumber(new Date("2025-08-18")),
+          createdAt: new Date().toISOString()
+        },
+        {
+          userId: 1,
+          taskId: 1,
+          date: "2025-08-19",
+          completed: true,
+          week: getWeekNumber(new Date("2025-08-19")),
+          createdAt: new Date().toISOString()
+        },
+        {
+          userId: 1,
+          taskId: 1,
+          date: "2025-08-21",
+          completed: true,
+          week: getWeekNumber(new Date("2025-08-21")),
+          createdAt: new Date().toISOString()
+        },
+        // Iris - 每日運動 on 8/17
+        {
+          userId: 2,
+          taskId: 1,
+          date: "2025-08-17",
+          completed: true,
+          week: getWeekNumber(new Date("2025-08-17")),
+          createdAt: new Date().toISOString()
+        },
+        // Rita - 每日運動 on 8/18, 8/21
+        {
+          userId: 4,
+          taskId: 1,
+          date: "2025-08-18",
+          completed: true,
+          week: getWeekNumber(new Date("2025-08-18")),
+          createdAt: new Date().toISOString()
+        },
+        {
+          userId: 4,
+          taskId: 1,
+          date: "2025-08-21",
+          completed: true,
+          week: getWeekNumber(new Date("2025-08-21")),
+          createdAt: new Date().toISOString()
+        }
+      ]
+    };
+    
+    await saveData(newData);
+    console.log('✅ Database reset successfully!');
+    
+    res.json({
+      success: true,
+      message: 'Database reset successfully',
+      data: {
+        users: newData.users.length,
+        tasks: newData.tasks.length,
+        userTasks: newData.userTasks.length,
+        completions: newData.completions.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Reset failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Test endpoint to manually add a completion
 app.get('/api/test-completion', async (req, res) => {
   try {
