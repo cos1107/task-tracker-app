@@ -4,12 +4,25 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs').promises;
 
-// Safely import Vercel KV (might not be available in all environments)
-let kv = null;
+// Safely import Redis client (Upstash or Vercel KV)
+let redis = null;
 try {
-  kv = require('@vercel/kv').kv;
+  // Try Upstash Redis first (new marketplace integration)
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const { Redis } = require('@upstash/redis');
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    console.log('Using Upstash Redis');
+  } else {
+    // Fallback to Vercel KV (deprecated)
+    const { kv } = require('@vercel/kv');
+    redis = kv;
+    console.log('Using Vercel KV (deprecated)');
+  }
 } catch (error) {
-  console.log('Vercel KV not available:', error.message);
+  console.log('Redis not available:', error.message);
 }
 
 const app = express();
@@ -35,19 +48,19 @@ function getLocalDateString(date = new Date()) {
 
 async function loadData() {
   try {
-    // Try to load from Vercel KV first (production)
-    if (process.env.VERCEL && process.env.KV_REST_API_URL && kv) {
-      console.log('Loading data from Vercel KV...');
+    // Try to load from Redis first (production)
+    if (process.env.VERCEL && redis) {
+      console.log('Loading data from Redis...');
       try {
-        const data = await kv.get('task-tracker-data');
+        const data = await redis.get('task-tracker-data');
         if (data) {
-          console.log('Data loaded from KV successfully');
+          console.log('Data loaded from Redis successfully');
           await ensureMandatoryTask(data);
           return data;
         }
-        console.log('No data found in KV, will create default data');
-      } catch (kvError) {
-        console.log('KV error:', kvError.message, '- falling back to file system');
+        console.log('No data found in Redis, will create default data');
+      } catch (redisError) {
+        console.log('Redis error:', redisError.message, '- falling back to file system');
         // Fall through to file system as backup
       }
     }
@@ -118,15 +131,15 @@ async function ensureMandatoryTask(data) {
 
 async function saveData(data) {
   try {
-    if (process.env.VERCEL && process.env.KV_REST_API_URL && kv) {
-      // Production: Save to Vercel KV (if available)
-      console.log('Saving data to Vercel KV...');
+    if (process.env.VERCEL && redis) {
+      // Production: Save to Redis (if available)
+      console.log('Saving data to Redis...');
       try {
-        await kv.set('task-tracker-data', data);
-        console.log('Data saved successfully to Vercel KV');
+        await redis.set('task-tracker-data', data);
+        console.log('Data saved successfully to Redis');
         return;
-      } catch (kvError) {
-        console.log('KV save error:', kvError.message, '- data will not persist');
+      } catch (redisError) {
+        console.log('Redis save error:', redisError.message, '- data will not persist');
         // Don't throw error, just log it - app should continue working
         return;
       }
@@ -140,13 +153,15 @@ async function saveData(data) {
       await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
       console.log('Data saved successfully to file');
     } else {
-      // Vercel without KV - data will not persist, but app continues working
+      // Vercel without Redis - data will not persist, but app continues working
       console.log('⚠️ Warning: No persistent storage available on Vercel');
       console.log('Environment check:');
       console.log('- VERCEL:', !!process.env.VERCEL);
-      console.log('- KV_REST_API_URL:', !!process.env.KV_REST_API_URL);
-      console.log('- kv module loaded:', !!kv);
-      console.log('Data will not persist between requests - please set up Vercel KV');
+      console.log('- UPSTASH_REDIS_REST_URL:', !!process.env.UPSTASH_REDIS_REST_URL);
+      console.log('- UPSTASH_REDIS_REST_TOKEN:', !!process.env.UPSTASH_REDIS_REST_TOKEN);
+      console.log('- KV_REST_API_URL (deprecated):', !!process.env.KV_REST_API_URL);
+      console.log('- redis client loaded:', !!redis);
+      console.log('Data will not persist between requests - please set up Redis via Vercel Marketplace');
     }
   } catch (error) {
     console.error('Error saving data:', error);
