@@ -67,13 +67,17 @@ async function loadData() {
         const data = await redis.get('task-tracker-data');
         if (data) {
           console.log('Data loaded from Redis successfully');
-          await ensureMandatoryTask(data);
-          return data;
+          console.log('Data type:', typeof data);
+          console.log('Data keys:', data ? Object.keys(data) : 'null');
+          // Ensure data is properly parsed (Upstash returns JSON automatically)
+          const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+          await ensureMandatoryTask(parsedData);
+          return parsedData;
         }
         console.log('No data found in Redis, will create default data');
       } catch (redisError) {
-        console.log('Redis error:', redisError.message, '- falling back to file system');
-        // Fall through to file system as backup
+        console.log('Redis error:', redisError.message, '- falling back to default data');
+        console.error('Full Redis error:', redisError);
       }
     }
     
@@ -146,12 +150,23 @@ async function saveData(data) {
     if (process.env.VERCEL && redis) {
       // Production: Save to Redis (if available)
       console.log('Saving data to Redis...');
+      console.log('Data being saved - users:', data.users?.length, 'tasks:', data.tasks?.length, 'completions:', data.completions?.length);
       try {
+        // Upstash automatically handles JSON serialization
         await redis.set('task-tracker-data', data);
         console.log('Data saved successfully to Redis');
+        
+        // Verify the save worked
+        const verifyData = await redis.get('task-tracker-data');
+        if (verifyData) {
+          console.log('Save verified - data exists in Redis');
+        } else {
+          console.error('WARNING: Save verification failed - data not found after save');
+        }
         return;
       } catch (redisError) {
-        console.log('Redis save error:', redisError.message, '- data will not persist');
+        console.error('Redis save error:', redisError.message);
+        console.error('Full error:', redisError);
         // Don't throw error, just log it - app should continue working
         return;
       }
@@ -185,6 +200,7 @@ async function saveData(data) {
 // Health check endpoint to verify storage configuration
 app.get('/api/health', async (req, res) => {
   let testResult = null;
+  let currentData = null;
   
   // Try to test Redis connection if available
   if (redis) {
@@ -193,6 +209,21 @@ app.get('/api/health', async (req, res) => {
       const testValue = await redis.get('test-key');
       testResult = testValue === 'test-value' ? 'success' : 'failed';
       await redis.del('test-key');
+      
+      // Also check current data
+      currentData = await redis.get('task-tracker-data');
+      if (currentData) {
+        const data = typeof currentData === 'string' ? JSON.parse(currentData) : currentData;
+        currentData = {
+          hasData: true,
+          users: data.users?.length || 0,
+          tasks: data.tasks?.length || 0,
+          completions: data.completions?.length || 0,
+          userTasks: data.userTasks?.length || 0
+        };
+      } else {
+        currentData = { hasData: false };
+      }
     } catch (error) {
       testResult = `error: ${error.message}`;
     }
@@ -207,7 +238,8 @@ app.get('/api/health', async (req, res) => {
       kv_url_configured: !!process.env.KV_REST_API_URL,
       redis_client_loaded: !!redis,
       storage_type: redis ? (process.env.UPSTASH_REDIS_REST_URL ? 'upstash' : 'vercel-kv') : 'file-system',
-      redis_test: testResult
+      redis_test: testResult,
+      current_data: currentData
     },
     timestamp: new Date().toISOString()
   });
