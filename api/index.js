@@ -6,23 +6,35 @@ const fs = require('fs').promises;
 
 // Safely import Redis client (Upstash or Vercel KV)
 let redis = null;
+
+// Log environment variables (without showing sensitive data)
+console.log('=== Storage Configuration Check ===');
+console.log('Environment:', process.env.VERCEL ? 'Vercel' : 'Local');
+console.log('UPSTASH_REDIS_REST_URL exists:', !!process.env.UPSTASH_REDIS_REST_URL);
+console.log('UPSTASH_REDIS_REST_TOKEN exists:', !!process.env.UPSTASH_REDIS_REST_TOKEN);
+
 try {
   // Try Upstash Redis first (new marketplace integration)
   if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    console.log('Attempting to initialize Upstash Redis...');
     const { Redis } = require('@upstash/redis');
     redis = new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL,
       token: process.env.UPSTASH_REDIS_REST_TOKEN,
     });
-    console.log('Using Upstash Redis');
-  } else {
+    console.log('✅ Successfully initialized Upstash Redis');
+  } else if (process.env.KV_REST_API_URL) {
     // Fallback to Vercel KV (deprecated)
+    console.log('Attempting to initialize Vercel KV (deprecated)...');
     const { kv } = require('@vercel/kv');
     redis = kv;
-    console.log('Using Vercel KV (deprecated)');
+    console.log('✅ Successfully initialized Vercel KV');
+  } else {
+    console.log('⚠️ No Redis configuration found - will use file system');
   }
 } catch (error) {
-  console.log('Redis not available:', error.message);
+  console.error('❌ Redis initialization error:', error.message);
+  console.error('Full error:', error);
 }
 
 const app = express();
@@ -169,6 +181,37 @@ async function saveData(data) {
     console.log('Save failed, but app will continue working with in-memory data');
   }
 }
+
+// Health check endpoint to verify storage configuration
+app.get('/api/health', async (req, res) => {
+  let testResult = null;
+  
+  // Try to test Redis connection if available
+  if (redis) {
+    try {
+      await redis.set('test-key', 'test-value');
+      const testValue = await redis.get('test-key');
+      testResult = testValue === 'test-value' ? 'success' : 'failed';
+      await redis.del('test-key');
+    } catch (error) {
+      testResult = `error: ${error.message}`;
+    }
+  }
+  
+  res.json({
+    status: 'ok',
+    environment: process.env.VERCEL ? 'vercel' : 'local',
+    storage: {
+      upstash_url_configured: !!process.env.UPSTASH_REDIS_REST_URL,
+      upstash_token_configured: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+      kv_url_configured: !!process.env.KV_REST_API_URL,
+      redis_client_loaded: !!redis,
+      storage_type: redis ? (process.env.UPSTASH_REDIS_REST_URL ? 'upstash' : 'vercel-kv') : 'file-system',
+      redis_test: testResult
+    },
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.get('/api/users', async (req, res) => {
   const data = await loadData();
