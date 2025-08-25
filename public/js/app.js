@@ -344,15 +344,19 @@ async function loadStatistics() {
         // Handle undefined combo
         const comboCount = userStat.combo || 0;
         
-        // NEW REWARD POLICY: Red heart right after combo text if combo > 2
-        const heartIcon = comboCount > 2 ? ' ❤️' : '';
+        // Get current date to calculate half of month progress
+        const currentDate = new Date().getDate();
+        const halfOfCurrentDate = Math.ceil(currentDate / 2);
+        
+        // NEW REWARD POLICY: Red heart if completedDays >= half of current date in month
+        const heartIcon = comboCount >= halfOfCurrentDate ? ' ❤️' : '';
         
         html += `
             <div class="stat-card">
                 <h3>${userStat.userName}</h3>
                 <div class="stat-value">${userStat.completionRate}%</div>
                 <div class="stat-label">運動完成率</div>
-                <div class="combo-text">達成${comboCount}天運動${heartIcon}</div>
+                <div class="combo-text">達到${comboCount}天運動${heartIcon}</div>
                 <div class="encouragement-message">${encouragementMessage}</div>
             </div>
         `;
