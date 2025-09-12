@@ -48,7 +48,8 @@ async function loadData() {
         { userId: 3, taskId: 1 },
         { userId: 4, taskId: 1 }
       ],
-      completions: []
+      completions: [],
+      monthlyArchives: []
     };
     await saveData(defaultData);
     return defaultData;
@@ -447,6 +448,185 @@ function getWeekNumber(date) {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
   return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
 }
+
+// Calculate completion ratio for a user in a given date range
+function calculateCompletionRatio(completions, userId, startDate, endDate) {
+  const userCompletions = completions.filter(c => {
+    const completionDate = new Date(c.date);
+    return c.userId === userId && 
+           completionDate >= startDate && 
+           completionDate <= endDate;
+  });
+  
+  if (userCompletions.length === 0) return 0;
+  
+  const completedCount = userCompletions.filter(c => c.completed).length;
+  const totalDays = userCompletions.length;
+  
+  return Math.round((completedCount / totalDays) * 100);
+}
+
+// Archive old month data and clean database
+async function archiveAndCleanDatabase() {
+  const data = await loadData();
+  const now = new Date();
+  
+  // Calculate the cutoff date (3 days into current month)
+  const cutoffDate = new Date(now.getFullYear(), now.getMonth(), 3);
+  
+  // If we're not yet 3 days into the month, don't clean
+  if (now < cutoffDate) {
+    return { cleaned: false, reason: 'Not yet 3 days into the month' };
+  }
+  
+  // Get previous month dates
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
+  
+  // Check if we already have an archive for previous month
+  const archiveKey = `${prevMonthStart.getFullYear()}-${String(prevMonthStart.getMonth() + 1).padStart(2, '0')}`;
+  
+  if (!data.monthlyArchives) {
+    data.monthlyArchives = [];
+  }
+  
+  const existingArchive = data.monthlyArchives.find(a => a.month === archiveKey);
+  
+  if (!existingArchive) {
+    // Create archive for previous month
+    const monthlyArchive = {
+      month: archiveKey,
+      year: prevMonthStart.getFullYear(),
+      monthNumber: prevMonthStart.getMonth() + 1,
+      userCompletionRatios: [],
+      archivedAt: new Date().toISOString()
+    };
+    
+    // Calculate completion ratios for each user
+    data.users.forEach(user => {
+      const ratio = calculateCompletionRatio(
+        data.completions,
+        user.id,
+        prevMonthStart,
+        prevMonthEnd
+      );
+      
+      monthlyArchive.userCompletionRatios.push({
+        userId: user.id,
+        userName: user.name,
+        completionRatio: ratio
+      });
+    });
+    
+    data.monthlyArchives.push(monthlyArchive);
+  }
+  
+  // Clean old completion data (keep only current month)
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const cleanedCompletions = data.completions.filter(c => {
+    const completionDate = new Date(c.date);
+    return completionDate >= currentMonthStart;
+  });
+  
+  const deletedCount = data.completions.length - cleanedCompletions.length;
+  data.completions = cleanedCompletions;
+  
+  await saveData(data);
+  
+  return {
+    cleaned: true,
+    deletedCompletions: deletedCount,
+    archiveCreated: !existingArchive,
+    archiveMonth: archiveKey
+  };
+}
+
+// Database viewer endpoint - shows all data
+app.get('/api/database', async (req, res) => {
+  try {
+    const data = await loadData();
+    res.json({
+      message: 'Current database contents',
+      timestamp: new Date().toISOString(),
+      data: data,
+      stats: {
+        users: data.users?.length || 0,
+        tasks: data.tasks?.length || 0,
+        userTasks: data.userTasks?.length || 0,
+        completions: data.completions?.length || 0
+      }
+    });
+  } catch (error) {
+    console.error('Database viewer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Database cleaning endpoint - manually trigger cleanup
+app.post('/api/clean-database', async (req, res) => {
+  try {
+    console.log('🧹 Starting database cleanup...');
+    const result = await archiveAndCleanDatabase();
+    
+    if (result.cleaned) {
+      console.log(`✅ Database cleaned! Deleted ${result.deletedCompletions} old completions`);
+      if (result.archiveCreated) {
+        console.log(`📦 Created archive for month: ${result.archiveMonth}`);
+      }
+    } else {
+      console.log(`⏰ Cleanup skipped: ${result.reason}`);
+    }
+    
+    res.json({
+      success: true,
+      ...result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Database cleanup failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get monthly archives endpoint
+app.get('/api/monthly-archives', async (req, res) => {
+  try {
+    const data = await loadData();
+    const archives = data.monthlyArchives || [];
+    
+    res.json({
+      archives: archives.sort((a, b) => b.month.localeCompare(a.month)),
+      count: archives.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching archives:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get specific month archive
+app.get('/api/monthly-archives/:month', async (req, res) => {
+  try {
+    const { month } = req.params;
+    const data = await loadData();
+    
+    if (!data.monthlyArchives) {
+      return res.status(404).json({ error: 'No archives found' });
+    }
+    
+    const archive = data.monthlyArchives.find(a => a.month === month);
+    
+    if (!archive) {
+      return res.status(404).json({ error: `Archive for month ${month} not found` });
+    }
+    
+    res.json(archive);
+  } catch (error) {
+    console.error('Error fetching archive:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
