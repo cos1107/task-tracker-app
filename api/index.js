@@ -826,30 +826,36 @@ function getWeekNumber(date) {
 function calculateCompletionRatio(completions, userId, startDate, endDate) {
   const userCompletions = completions.filter(c => {
     const completionDate = new Date(c.date);
-    return c.userId === userId && 
-           completionDate >= startDate && 
+    return c.userId === userId &&
+           c.completed &&
+           completionDate >= startDate &&
            completionDate <= endDate;
   });
-  
+
   if (userCompletions.length === 0) return 0;
-  
-  const completedCount = userCompletions.filter(c => c.completed).length;
-  const totalDays = userCompletions.length;
-  
-  return Math.round((completedCount / totalDays) * 100);
+
+  // Calculate unique days where user completed at least one task
+  const uniqueCompletedDates = [...new Set(userCompletions.map(c => c.date))];
+  const completedDays = uniqueCompletedDates.length;
+
+  // Calculate total days in the month
+  const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+  // Return float with one decimal place
+  return parseFloat(((completedDays / totalDays) * 100).toFixed(1));
 }
 
 // Archive old month data and clean database
 async function archiveAndCleanDatabase() {
   const data = await loadData();
   const now = new Date();
-  
-  // Calculate the cutoff date (3 days into current month)
-  const cutoffDate = new Date(now.getFullYear(), now.getMonth(), 3);
-  
-  // If we're not yet 3 days into the month, don't clean
+
+  // Calculate the cutoff date (1st day of current month)
+  const cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Only clean on or after the 1st day of the month
   if (now < cutoffDate) {
-    return { cleaned: false, reason: 'Not yet 3 days into the month' };
+    return { cleaned: false, reason: 'Not yet the 1st day of the month' };
   }
   
   // Get previous month dates

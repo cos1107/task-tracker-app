@@ -217,6 +217,8 @@
         <div class="button-group">
             <button class="btn" onclick="loadDatabase()">🔄 Refresh Data</button>
             <button class="btn btn-success" onclick="downloadJSON()">💾 Download JSON</button>
+            <button class="btn btn-warning" onclick="cleanDatabase()">🧹 Clean Database</button>
+            <button class="btn btn-info" onclick="viewArchives()">📦 View Archives</button>
             <button class="btn btn-danger" onclick="resetDatabase()">🔄 Reset Database</button>
         </div>
 
@@ -273,6 +275,10 @@
                     <div class="stat-card">
                         <div class="stat-value">${result.stats.completions}</div>
                         <div class="stat-label">Completions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${result.data.monthlyArchives ? result.data.monthlyArchives.length : 0}</div>
+                        <div class="stat-label">Archives</div>
                     </div>
                 `;
                 
@@ -350,6 +356,25 @@
                 }
                 html += '</div>';
                 
+                // Monthly Archives section
+                if (result.data.monthlyArchives && result.data.monthlyArchives.length > 0) {
+                    html += '<div class="section">';
+                    html += '<div class="section-title">📦 Monthly Archives</div>';
+                    html += '<table class="data-table">';
+                    html += '<thead><tr><th>Month</th><th>Year</th><th>Users</th><th>Archived At</th><th>Actions</th></tr></thead>';
+                    html += '<tbody>';
+                    result.data.monthlyArchives.forEach(archive => {
+                        html += `<tr>
+                            <td>${archive.month}</td>
+                            <td>${archive.year}</td>
+                            <td>${archive.userCompletionRatios.length}</td>
+                            <td>${new Date(archive.archivedAt).toLocaleString()}</td>
+                            <td><button class="btn btn-info" onclick="viewArchiveDetails('${archive.month}')">View Details</button></td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                }
+
                 // Raw JSON viewer
                 html += '<div class="section">';
                 html += '<div class="section-title">📄 Raw JSON Data</div>';
@@ -517,6 +542,164 @@
                 messageDiv.textContent = '';
                 messageDiv.className = '';
             }, 5000);
+        }
+
+        async function cleanDatabase() {
+            if (!confirm('Are you sure you want to run database cleanup?\n\nThis will:\n- Archive previous month completion data with user ratios\n- Remove old detailed completion records\n- Keep only current month data\n\nThis action is recommended to maintain database performance.')) {
+                return;
+            }
+            
+            try {
+                showMessage('Running database cleanup...', 'info');
+                const response = await fetch('/api/clean-database', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.cleaned) {
+                        let message = `🧹 Database cleaned successfully!\n\n`;
+                        message += `• Deleted ${result.deletedCompletions} old completion records\n`;
+                        
+                        if (result.archiveCreated) {
+                            message += `• Created archive for month: ${result.archiveMonth}\n`;
+                        } else {
+                            message += `• Archive already exists for month: ${result.archiveMonth}\n`;
+                        }
+                        
+                        showMessage(message, 'success');
+                    } else {
+                        showMessage(`⏰ Cleanup skipped: ${result.reason}`, 'info');
+                    }
+                    
+                    loadDatabase(); // Refresh the view
+                } else {
+                    showMessage('Cleanup failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Cleanup failed: ' + error.message, 'error');
+            }
+        }
+
+        async function viewArchives() {
+            try {
+                const response = await fetch('/api/monthly-archives');
+                const result = await response.json();
+                
+                if (result.archives && result.archives.length > 0) {
+                    let archiveHtml = '<div class="section"><div class="section-title">📦 All Monthly Archives</div>';
+                    archiveHtml += '<p>Found ' + result.count + ' archived months:</p>';
+                    
+                    result.archives.forEach(archive => {
+                        archiveHtml += '<div style="background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #007bff;">';
+                        archiveHtml += '<h4>📅 ' + archive.month + ' (Year: ' + archive.year + ')</h4>';
+                        archiveHtml += '<p><strong>Archived:</strong> ' + new Date(archive.archivedAt).toLocaleString() + '</p>';
+                        archiveHtml += '<h5>User Completion Ratios:</h5>';
+                        archiveHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">';
+                        
+                        archive.userCompletionRatios.forEach(user => {
+                            const ratioColor = user.completionRatio >= 80 ? '#28a745' : 
+                                             user.completionRatio >= 60 ? '#ffc107' : '#dc3545';
+                            archiveHtml += `<div style="background: ${ratioColor}; color: white; padding: 10px; border-radius: 5px; text-align: center;">`;
+                            archiveHtml += `<strong>${user.userName}</strong><br>`;
+                            archiveHtml += `${user.completionRatio}% completed`;
+                            archiveHtml += '</div>';
+                        });
+                        
+                        archiveHtml += '</div></div>';
+                    });
+                    
+                    archiveHtml += '</div>';
+                    
+                    // Show in a modal-like overlay
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = `
+                        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                        background: rgba(0,0,0,0.5); z-index: 1000; 
+                        display: flex; align-items: center; justify-content: center;
+                        padding: 20px; box-sizing: border-box;
+                    `;
+                    
+                    const modal = document.createElement('div');
+                    modal.style.cssText = `
+                        background: white; border-radius: 10px; padding: 30px; 
+                        max-width: 900px; max-height: 80vh; overflow-y: auto;
+                        position: relative; width: 100%;
+                    `;
+                    
+                    const closeBtn = document.createElement('button');
+                    closeBtn.textContent = '❌ Close';
+                    closeBtn.className = 'btn btn-danger';
+                    closeBtn.style.cssText = 'position: absolute; top: 15px; right: 15px;';
+                    closeBtn.onclick = () => document.body.removeChild(overlay);
+                    
+                    modal.innerHTML = archiveHtml;
+                    modal.appendChild(closeBtn);
+                    overlay.appendChild(modal);
+                    document.body.appendChild(overlay);
+                    
+                } else {
+                    showMessage('No monthly archives found yet. Archives are created automatically when database cleanup runs.', 'info');
+                }
+            } catch (error) {
+                showMessage('Failed to load archives: ' + error.message, 'error');
+            }
+        }
+
+        async function viewArchiveDetails(month) {
+            try {
+                const response = await fetch(`/api/monthly-archives/${month}`);
+                const archive = await response.json();
+                
+                let detailHtml = '<div class="section"><div class="section-title">📦 Archive Details for ' + month + '</div>';
+                detailHtml += '<p><strong>Archived:</strong> ' + new Date(archive.archivedAt).toLocaleString() + '</p>';
+                detailHtml += '<h4>User Completion Ratios:</h4>';
+                detailHtml += '<table class="data-table"><thead><tr><th>User</th><th>Completion Ratio</th><th>Performance</th></tr></thead><tbody>';
+                
+                archive.userCompletionRatios.forEach(user => {
+                    const performance = user.completionRatio >= 80 ? '🟢 Excellent' : 
+                                      user.completionRatio >= 60 ? '🟡 Good' : '🔴 Needs Improvement';
+                    detailHtml += `<tr>
+                        <td>${user.userName}</td>
+                        <td><strong>${user.completionRatio}%</strong></td>
+                        <td>${performance}</td>
+                    </tr>`;
+                });
+                
+                detailHtml += '</tbody></table></div>';
+                
+                // Show in modal
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                    background: rgba(0,0,0,0.5); z-index: 1000; 
+                    display: flex; align-items: center; justify-content: center;
+                    padding: 20px; box-sizing: border-box;
+                `;
+                
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    background: white; border-radius: 10px; padding: 30px; 
+                    max-width: 600px; max-height: 80vh; overflow-y: auto;
+                    position: relative; width: 100%;
+                `;
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.textContent = '❌ Close';
+                closeBtn.className = 'btn btn-danger';
+                closeBtn.style.cssText = 'position: absolute; top: 15px; right: 15px;';
+                closeBtn.onclick = () => document.body.removeChild(overlay);
+                
+                modal.innerHTML = detailHtml;
+                modal.appendChild(closeBtn);
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+                
+            } catch (error) {
+                showMessage('Failed to load archive details: ' + error.message, 'error');
+            }
         }
 
         // Load database on page load
