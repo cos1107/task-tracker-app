@@ -174,6 +174,231 @@ h1 {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+/* 打卡介面標題和日期選擇器 */
+.check-in-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.check-in-header h2 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.date-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #495057;
+}
+
+.date-nav-btn:hover:not(.disabled) {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.date-nav-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.date-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.date-display:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.date-display svg {
+    opacity: 0.9;
+}
+
+.today-btn {
+    padding: 8px 16px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.today-btn:hover {
+    background: #229954;
+    transform: translateY(-1px);
+}
+
+/* 日期選擇器容器 */
+.date-picker-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.date-picker-calendar {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    padding: 20px;
+    max-width: 350px;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.picker-month-year {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.picker-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #495057;
+}
+
+.picker-nav:hover {
+    background: #3498db;
+    color: white;
+}
+
+.picker-days-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.picker-day-name {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #7f8c8d;
+    padding: 5px;
+}
+
+.picker-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.picker-day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #2c3e50;
+}
+
+.picker-day:hover:not(.empty):not(.disabled) {
+    background: #e3f2fd;
+}
+
+.picker-day.empty {
+    cursor: default;
+}
+
+.picker-day.today {
+    background: #e8f5e9;
+    color: #27ae60;
+    font-weight: 700;
+}
+
+.picker-day.selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 700;
+}
+
+.picker-day.future.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+/* 日期指示器 */
+.date-indicator {
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-indicator.past-date {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    color: #c0392b;
+}
+
+.date-indicator.past-date::before {
+    content: '📅';
+    font-size: 18px;
+}
+
 .tasks-list {
     display: flex;
     flex-direction: column;
@@ -398,42 +623,85 @@ h1 {
     .container {
         padding: 10px;
     }
-    
+
     header {
         flex-direction: column;
         gap: 10px;
         text-align: center;
     }
-    
+
     h1 {
         font-size: 20px;
     }
-    
+
     .nav-tabs {
         justify-content: center;
     }
-    
+
     .tab-btn {
         font-size: 12px;
         padding: 8px 15px;
     }
-    
+
     .tab-pane {
         padding: 20px;
     }
-    
+
     #new-task-input {
         width: 100%;
         margin-bottom: 10px;
     }
-    
+
     .week-table {
         font-size: 14px;
     }
-    
+
     .week-table th,
     .week-table td {
         padding: 5px;
+    }
+
+    /* 日期選擇器手機版樣式 */
+    .check-in-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .check-in-header h2 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .date-selector {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .date-display {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    .date-display #current-date {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .date-picker-calendar {
+        max-width: 100%;
+    }
+
+    .picker-day {
+        width: 36px;
+        height: 36px;
+        font-size: 13px;
+    }
+
+    .date-indicator {
+        padding: 10px 15px;
+        font-size: 14px;
     }
 }
 

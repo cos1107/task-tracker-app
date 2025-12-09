@@ -3,6 +3,8 @@ let tasks = [];
 let users = [];
 let allTasks = [];
 let userTasks = [];
+let selectedDate = null; // 當前選擇的日期
+let datePickerVisible = false;
 
 // Utility function to get local date string without timezone issues
 function getLocalDateString(date = new Date()) {
@@ -192,33 +194,237 @@ function switchTab(tabName) {
 }
 
 function updateCurrentDate() {
-    const today = new Date();
+    if (!selectedDate) {
+        selectedDate = new Date();
+    }
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('current-date').textContent = today.toLocaleDateString('en-US', options);
+    document.getElementById('current-date').textContent = selectedDate.toLocaleDateString('zh-TW', options);
+
+    // 更新日期指示器
+    updateDateIndicator();
+
+    // 更新下一天按鈕狀態（不能選擇未來日期）
+    const nextBtn = document.getElementById('next-date-btn');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+
+    if (nextBtn) {
+        if (selected >= today) {
+            nextBtn.disabled = true;
+            nextBtn.classList.add('disabled');
+        } else {
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('disabled');
+        }
+    }
+}
+
+function updateDateIndicator() {
+    const indicator = document.getElementById('date-indicator');
+    const indicatorText = document.getElementById('date-indicator-text');
+
+    if (!indicator || !indicatorText) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+
+    const diffTime = today - selected;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+        indicator.classList.add('hidden');
+    } else if (diffDays === 1) {
+        indicator.classList.remove('hidden');
+        indicator.className = 'date-indicator past-date';
+        indicatorText.textContent = '昨天 - 補打卡';
+    } else if (diffDays > 1) {
+        indicator.classList.remove('hidden');
+        indicator.className = 'date-indicator past-date';
+        indicatorText.textContent = `${diffDays} 天前 - 補打卡`;
+    } else {
+        indicator.classList.add('hidden');
+    }
+}
+
+function navigateDate(direction) {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + direction);
+
+    // 不能選擇未來日期
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    if (newDate > today) {
+        return;
+    }
+
+    selectedDate = newDate;
+    updateCurrentDate();
+    loadDailyTasks();
+}
+
+function goToToday() {
+    selectedDate = new Date();
+    updateCurrentDate();
+    loadDailyTasks();
+    hideDatePicker();
+}
+
+function toggleDatePicker() {
+    const container = document.getElementById('date-picker-container');
+    if (datePickerVisible) {
+        hideDatePicker();
+    } else {
+        showDatePicker();
+    }
+}
+
+function showDatePicker() {
+    const container = document.getElementById('date-picker-container');
+    if (container) {
+        container.classList.remove('hidden');
+        datePickerVisible = true;
+        renderDatePicker();
+    }
+}
+
+function hideDatePicker() {
+    const container = document.getElementById('date-picker-container');
+    if (container) {
+        container.classList.add('hidden');
+        datePickerVisible = false;
+    }
+}
+
+function renderDatePicker() {
+    const calendar = document.getElementById('date-picker-calendar');
+    if (!calendar) return;
+
+    const currentMonth = new Date(selectedDate);
+    currentMonth.setDate(1);
+
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
+                       '七月', '八月', '九月', '十月', '十一月', '十二月'];
+    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
+
+    let html = `
+        <div class="picker-header">
+            <button class="picker-nav" onclick="changePickerMonth(-1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <span class="picker-month-year">${year}年 ${monthNames[month]}</span>
+            <button class="picker-nav" onclick="changePickerMonth(1)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+        </div>
+        <div class="picker-days-header">
+            ${dayNames.map(d => `<div class="picker-day-name">${d}</div>`).join('')}
+        </div>
+        <div class="picker-days">
+    `;
+
+    // 空白天數
+    for (let i = 0; i < startDay; i++) {
+        html += `<div class="picker-day empty"></div>`;
+    }
+
+    // 該月的天數
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+        const date = new Date(year, month, day);
+        date.setHours(0, 0, 0, 0);
+
+        const isToday = date.getTime() === today.getTime();
+        const isSelected = getLocalDateString(date) === getLocalDateString(selectedDate);
+        const isFuture = date > today;
+
+        let classes = 'picker-day';
+        if (isToday) classes += ' today';
+        if (isSelected) classes += ' selected';
+        if (isFuture) classes += ' future disabled';
+
+        const dateStr = getLocalDateString(date);
+
+        if (isFuture) {
+            html += `<div class="${classes}">${day}</div>`;
+        } else {
+            html += `<div class="${classes}" onclick="selectDate('${dateStr}')">${day}</div>`;
+        }
+    }
+
+    html += `</div>`;
+    calendar.innerHTML = html;
+}
+
+function changePickerMonth(direction) {
+    const currentMonth = new Date(selectedDate);
+    currentMonth.setMonth(currentMonth.getMonth() + direction);
+
+    // 限制不能選擇未來月份的未來日期
+    const today = new Date();
+    if (currentMonth.getFullYear() > today.getFullYear() ||
+        (currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() > today.getMonth())) {
+        return;
+    }
+
+    // 暫時設定為該月1號以便渲染日曆
+    const tempDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    selectedDate = tempDate;
+    renderDatePicker();
+}
+
+function selectDate(dateStr) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    selectedDate = new Date(year, month - 1, day);
+
+    updateCurrentDate();
+    loadDailyTasks();
+    hideDatePicker();
 }
 
 async function loadDailyTasks() {
     const tasksList = document.getElementById('tasks-list');
     tasksList.innerHTML = '';
-    
-    const today = getLocalDateString();
+
+    // 使用選擇的日期
+    if (!selectedDate) {
+        selectedDate = new Date();
+    }
+    const dateStr = getLocalDateString(selectedDate);
     const completions = await fetchCompletions(currentUser.id);
-    
+
     tasks.forEach(task => {
         const taskItem = document.createElement('div');
         taskItem.className = 'task-item';
-        
-        const completion = completions.find(c => c.taskId === task.id && c.date === today);
+
+        const completion = completions.find(c => c.taskId === task.id && c.date === dateStr);
         const isCompleted = completion ? completion.completed : false;
-        
+
         taskItem.innerHTML = `
             <label>
-                <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                       onchange="toggleTask(${task.id}, '${today}', this.checked)">
+                <input type="checkbox" ${isCompleted ? 'checked' : ''}
+                       onchange="toggleTask(${task.id}, '${dateStr}', this.checked)">
                 <span>${task.name}</span>
             </label>
         `;
-        
+
         tasksList.appendChild(taskItem);
     });
 }
@@ -344,12 +550,8 @@ async function loadStatistics() {
         // Handle undefined combo
         const comboCount = userStat.combo || 0;
         
-        // Get current date to calculate half of month progress
-        const currentDate = new Date().getDate();
-        const halfOfCurrentDate = Math.floor(currentDate / 2);
-        
-        // NEW REWARD POLICY: Red heart if completedDays >= half of current date in month
-        const heartIcon = comboCount >= halfOfCurrentDate ? ' ❤️' : '';
+        // NEW REWARD POLICY: Red heart right after combo text if combo > 2
+        const heartIcon = comboCount > 2 ? ' ❤️' : '';
         
         html += `
             <div class="stat-card">
