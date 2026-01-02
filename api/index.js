@@ -552,16 +552,31 @@ async function updateArchiveForRetroactiveCheckin(data, userId, dateStr, complet
   const dayNumber = completionDate.getDate();
   const dayIndex = userRecord.completedDates.indexOf(dayNumber);
 
+  // For legacy archives: completedDays might be set but completedDates is empty
+  // Check this BEFORE modifying completedDates to preserve historical count
+  const isLegacyArchive = userRecord.completedDates.length === 0 && userRecord.completedDays > 0;
+  const originalCompletedDays = userRecord.completedDays;
+
   if (completed && dayIndex === -1) {
     // Add day to completedDates
     userRecord.completedDates.push(dayNumber);
     userRecord.completedDates.sort((a, b) => a - b);
-    userRecord.completedDays = userRecord.completedDates.length;
+    // For legacy archives, increment the original count; for new archives, use array length
+    if (isLegacyArchive) {
+      userRecord.completedDays = originalCompletedDays + 1;
+    } else {
+      userRecord.completedDays = userRecord.completedDates.length;
+    }
     console.log(`Added day ${dayNumber} to archive ${archiveKey} for user ${userId}`);
   } else if (!completed && dayIndex !== -1) {
     // Remove day from completedDates
     userRecord.completedDates.splice(dayIndex, 1);
-    userRecord.completedDays = userRecord.completedDates.length;
+    // For legacy archives, decrement the original count; for new archives, use array length
+    if (isLegacyArchive) {
+      userRecord.completedDays = Math.max(0, originalCompletedDays - 1);
+    } else {
+      userRecord.completedDays = userRecord.completedDates.length;
+    }
     console.log(`Removed day ${dayNumber} from archive ${archiveKey} for user ${userId}`);
   } else {
     // No change needed
