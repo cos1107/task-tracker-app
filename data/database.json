@@ -71,52 +71,76 @@
     {
       "userId": 1,
       "taskId": 1,
-      "date": "2025-08-22",
+      "date": "2025-12-09",
       "completed": true,
-      "week": 34,
-      "createdAt": "2025-08-22T17:54:28.391Z"
+      "week": 50,
+      "createdAt": "2025-12-09T17:13:51.132Z"
     },
     {
       "userId": 1,
       "taskId": 1,
-      "date": "2025-08-23",
+      "date": "2025-12-08",
       "completed": true,
-      "week": 34,
-      "createdAt": "2025-08-22T17:55:24.225Z"
+      "week": 50,
+      "createdAt": "2025-12-09T17:13:53.174Z"
     },
     {
-      "userId": 3,
-      "taskId": 3,
-      "date": "2025-08-23",
-      "completed": true,
-      "week": 34,
-      "createdAt": "2025-08-22T17:55:54.575Z",
-      "updatedAt": "2025-08-23T04:33:43.148Z"
-    },
-    {
-      "userId": 3,
+      "userId": 1,
       "taskId": 1,
-      "date": "2025-08-23",
+      "date": "2025-12-07",
       "completed": true,
-      "week": 34,
-      "createdAt": "2025-08-22T17:55:55.455Z",
-      "updatedAt": "2025-08-23T04:33:43.732Z"
+      "week": 49,
+      "createdAt": "2025-12-09T17:14:22.142Z"
+    }
+  ],
+  "monthlyArchives": [
+    {
+      "month": "2025-09",
+      "year": 2025,
+      "monthNumber": 9,
+      "userCompletionRatios": [
+        { "userId": 1, "userName": "Cosine", "completionRatio": 19.4 },
+        { "userId": 2, "userName": "Iris", "completionRatio": 19.4 },
+        { "userId": 3, "userName": "Anna", "completionRatio": 6.5 },
+        { "userId": 4, "userName": "Rita", "completionRatio": 16.1 }
+      ],
+      "archivedAt": "2025-10-01T00:00:00.000Z"
     },
     {
-      "userId": 2,
-      "taskId": 1,
-      "date": "2025-08-23",
-      "completed": true,
-      "week": 34,
-      "createdAt": "2025-08-23T01:46:44.197Z"
+      "month": "2025-10",
+      "year": 2025,
+      "monthNumber": 10,
+      "userCompletionRatios": [
+        { "userId": 1, "userName": "Cosine", "completionRatio": 30 },
+        { "userId": 2, "userName": "Iris", "completionRatio": 26.7 },
+        { "userId": 3, "userName": "Anna", "completionRatio": 0 },
+        { "userId": 4, "userName": "Rita", "completionRatio": 20 }
+      ],
+      "archivedAt": "2025-11-01T00:00:00.000Z"
     },
     {
-      "userId": 4,
-      "taskId": 1,
-      "date": "2025-08-23",
-      "completed": true,
-      "week": 34,
-      "createdAt": "2025-08-23T04:34:04.277Z"
+      "month": "2025-11",
+      "year": 2025,
+      "monthNumber": 11,
+      "userCompletionRatios": [
+        { "userId": 1, "userName": "Cosine", "completionRatio": 30.7 },
+        { "userId": 2, "userName": "Iris", "completionRatio": 16.1 },
+        { "userId": 3, "userName": "Anna", "completionRatio": 3.2 },
+        { "userId": 4, "userName": "Rita", "completionRatio": 45.2 }
+      ],
+      "archivedAt": "2025-12-01T00:00:00.000Z"
+    },
+    {
+      "month": "2025-12",
+      "year": 2025,
+      "monthNumber": 12,
+      "userCompletionRatios": [
+        { "userId": 1, "userName": "Cosine", "completionRatio": 35.5 },
+        { "userId": 2, "userName": "Iris", "completionRatio": 0 },
+        { "userId": 3, "userName": "Anna", "completionRatio": 0 },
+        { "userId": 4, "userName": "Rita", "completionRatio": 48.4 }
+      ],
+      "archivedAt": "2026-01-01T00:00:00.000Z"
     }
   ]
 }

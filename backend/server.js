@@ -14,6 +14,31 @@ app.use(express.static(path.join(__dirname, '..')));
 
 const DATA_FILE = path.join(__dirname, '../data/database.json');
 
+// Memory cache to avoid reading file on every request
+let dataCache = null;
+let cacheTimestamp = null;
+const CACHE_TTL = 5000; // 5 seconds cache TTL
+
+// Track last cleanup date to ensure cleanup runs once per day
+let lastCleanupDate = null;
+
+function invalidateCache() {
+  dataCache = null;
+  cacheTimestamp = null;
+}
+
+function isCacheValid() {
+  return dataCache && cacheTimestamp && (Date.now() - cacheTimestamp < CACHE_TTL);
+}
+
+function shouldRunCleanup() {
+  const today = getLocalDateString();
+  if (lastCleanupDate === today) {
+    return false;
+  }
+  return new Date().getDate() >= 1;
+}
+
 // Utility function to get local date string without timezone issues
 function getLocalDateString(date = new Date()) {
   const year = date.getFullYear();
@@ -23,13 +48,21 @@ function getLocalDateString(date = new Date()) {
 }
 
 async function loadData() {
+  // Return cached data if valid
+  if (isCacheValid()) {
+    return dataCache;
+  }
+
   try {
     const data = await fs.readFile(DATA_FILE, 'utf-8');
     const parsedData = JSON.parse(data);
-    
+
     // Ensure "每日運動" task always exists
     await ensureMandatoryTask(parsedData);
-    
+
+    // Update cache
+    dataCache = parsedData;
+    cacheTimestamp = Date.now();
     return parsedData;
   } catch (error) {
     const defaultData = {
@@ -52,6 +85,9 @@ async function loadData() {
       monthlyArchives: []
     };
     await saveData(defaultData);
+    // Update cache
+    dataCache = defaultData;
+    cacheTimestamp = Date.now();
     return defaultData;
   }
 }
@@ -85,6 +121,9 @@ async function ensureMandatoryTask(data) {
 }
 
 async function saveData(data) {
+  // Invalidate cache when saving new data
+  invalidateCache();
+
   try {
     // Ensure data directory exists
     const dataDir = path.dirname(DATA_FILE);
@@ -101,6 +140,19 @@ async function saveData(data) {
 
 
 app.get('/api/users', async (req, res) => {
+  // Run cleanup check on every user list request (app load)
+  if (shouldRunCleanup()) {
+    try {
+      const result = await archiveAndCleanDatabase();
+      if (result.cleaned) {
+        console.log(`✅ Auto cleanup: deleted ${result.deletedCompletions} old completions`);
+        lastCleanupDate = getLocalDateString();
+      }
+    } catch (err) {
+      console.error('Auto cleanup error:', err.message);
+    }
+  }
+
   const data = await loadData();
   res.json(data.users);
 });
@@ -202,13 +254,26 @@ app.post('/api/tasks', async (req, res) => {
 
 app.get('/api/completions/:userId', async (req, res) => {
   const userId = parseInt(req.params.userId);
-  const { week } = req.query;
+  const { week, all } = req.query;
   const data = await loadData();
-  
-  const userCompletions = data.completions.filter(c => 
-    c.userId === userId && (!week || c.week === week)
-  );
-  
+
+  // By default, only return current month's completions for better performance
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const userCompletions = data.completions.filter(c => {
+    if (c.userId !== userId) return false;
+    if (week && c.week !== week) return false;
+
+    // Unless 'all' param is passed, only return current month data
+    if (!all) {
+      const completionDate = new Date(c.date);
+      if (completionDate < currentMonthStart) return false;
+    }
+
+    return true;
+  });
+
   res.json(userCompletions);
 });
 
@@ -330,10 +395,11 @@ app.get('/api/statistics', async (req, res) => {
   // Add historical months from monthlyArchives
   if (data.monthlyArchives && data.monthlyArchives.length > 0) {
     data.monthlyArchives.forEach(archive => {
-      // Only include archives from current year
-      if (archive.year === currentYear && archive.monthNumber !== (currentMonth + 1)) {
+      // Skip current month if it's in archives (we already calculated it above)
+      const isCurrentMonth = archive.year === currentYear && archive.monthNumber === (currentMonth + 1);
+      if (!isCurrentMonth) {
         const monthIndex = archive.monthNumber - 1;
-        const daysInMonth = new Date(currentYear, archive.monthNumber, 0).getDate();
+        const daysInMonth = new Date(archive.year, archive.monthNumber, 0).getDate();
 
         const monthStats = data.users.map(user => {
           const archivedUserData = archive.userCompletionRatios.find(u => u.userId === user.id);
@@ -363,8 +429,11 @@ app.get('/api/statistics', async (req, res) => {
     });
   }
 
-  // Sort by month descending (current month first)
-  yearlyStats.sort((a, b) => b.month - a.month);
+  // Sort by year and month descending (newest first)
+  yearlyStats.sort((a, b) => {
+    if (a.year !== b.year) return b.year - a.year;
+    return b.month - a.month;
+  });
 
   res.json(yearlyStats);
 });

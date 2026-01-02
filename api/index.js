@@ -43,6 +43,34 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
+// Memory cache to avoid reading file on every request
+let dataCache = null;
+let cacheTimestamp = null;
+const CACHE_TTL = 5000; // 5 seconds cache TTL
+
+// Track last cleanup date to ensure cleanup runs once per day
+let lastCleanupDate = null;
+
+function invalidateCache() {
+  dataCache = null;
+  cacheTimestamp = null;
+}
+
+function isCacheValid() {
+  return dataCache && cacheTimestamp && (Date.now() - cacheTimestamp < CACHE_TTL);
+}
+
+// Check if cleanup should run (once per day, on or after 1st of month)
+function shouldRunCleanup() {
+  const today = getLocalDateString();
+  if (lastCleanupDate === today) {
+    return false; // Already cleaned today
+  }
+  const now = new Date();
+  // Only run cleanup on or after the 1st of the month
+  return now.getDate() >= 1;
+}
+
 // Use /tmp directory for Vercel serverless functions (temporary storage)
 const DATA_FILE = process.env.VERCEL 
   ? path.join('/tmp', 'database.json')
@@ -59,6 +87,11 @@ function getLocalDateString(date = new Date()) {
 }
 
 async function loadData() {
+  // Return cached data if valid
+  if (isCacheValid()) {
+    return dataCache;
+  }
+
   try {
     // Try to load from Redis first (production)
     if (process.env.VERCEL && redis) {
@@ -72,6 +105,9 @@ async function loadData() {
           // Ensure data is properly parsed (Upstash returns JSON automatically)
           const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
           await ensureMandatoryTask(parsedData);
+          // Update cache
+          dataCache = parsedData;
+          cacheTimestamp = Date.now();
           return parsedData;
         }
         console.log('No data found in Redis, will create default data');
@@ -87,6 +123,9 @@ async function loadData() {
       const fileData = await fs.readFile(DATA_FILE, 'utf-8');
       const parsedData = JSON.parse(fileData);
       await ensureMandatoryTask(parsedData);
+      // Update cache
+      dataCache = parsedData;
+      cacheTimestamp = Date.now();
       return parsedData;
     }
   } catch (error) {
@@ -115,6 +154,9 @@ async function loadData() {
     monthlyArchives: []
   };
   await saveData(defaultData);
+  // Update cache
+  dataCache = defaultData;
+  cacheTimestamp = Date.now();
   return defaultData;
 }
 
@@ -147,6 +189,9 @@ async function ensureMandatoryTask(data) {
 }
 
 async function saveData(data) {
+  // Invalidate cache when saving new data
+  invalidateCache();
+
   try {
     if (process.env.VERCEL && redis) {
       // Production: Save to Redis (if available)
@@ -260,6 +305,20 @@ app.get('/api/health', async (req, res) => {
 });
 
 app.get('/api/users', async (req, res) => {
+  // Run cleanup check on every user list request (app load)
+  // This ensures cleanup happens reliably when users access the app
+  if (shouldRunCleanup()) {
+    try {
+      const result = await archiveAndCleanDatabase();
+      if (result.cleaned) {
+        console.log(`✅ Auto cleanup: deleted ${result.deletedCompletions} old completions`);
+        lastCleanupDate = getLocalDateString();
+      }
+    } catch (err) {
+      console.error('Auto cleanup error:', err.message);
+    }
+  }
+
   const data = await loadData();
   res.json(data.users);
 });
@@ -361,13 +420,26 @@ app.post('/api/tasks', async (req, res) => {
 
 app.get('/api/completions/:userId', async (req, res) => {
   const userId = parseInt(req.params.userId);
-  const { week } = req.query;
+  const { week, all } = req.query;
   const data = await loadData();
-  
-  const userCompletions = data.completions.filter(c => 
-    c.userId === userId && (!week || c.week === week)
-  );
-  
+
+  // By default, only return current month's completions for better performance
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const userCompletions = data.completions.filter(c => {
+    if (c.userId !== userId) return false;
+    if (week && c.week !== week) return false;
+
+    // Unless 'all' param is passed, only return current month data
+    if (!all) {
+      const completionDate = new Date(c.date);
+      if (completionDate < currentMonthStart) return false;
+    }
+
+    return true;
+  });
+
   res.json(userCompletions);
 });
 
@@ -703,10 +775,11 @@ app.get('/api/statistics', async (req, res) => {
   // Add historical months from monthlyArchives
   if (data.monthlyArchives && data.monthlyArchives.length > 0) {
     data.monthlyArchives.forEach(archive => {
-      // Only include archives from current year
-      if (archive.year === currentYear && archive.monthNumber !== (currentMonth + 1)) {
+      // Skip current month if it's in archives (we already calculated it above)
+      const isCurrentMonth = archive.year === currentYear && archive.monthNumber === (currentMonth + 1);
+      if (!isCurrentMonth) {
         const monthIndex = archive.monthNumber - 1;
-        const daysInMonth = new Date(currentYear, archive.monthNumber, 0).getDate();
+        const daysInMonth = new Date(archive.year, archive.monthNumber, 0).getDate();
 
         const monthStats = data.users.map(user => {
           const archivedUserData = archive.userCompletionRatios.find(u => u.userId === user.id);
@@ -736,8 +809,11 @@ app.get('/api/statistics', async (req, res) => {
     });
   }
 
-  // Sort by month descending (current month first)
-  yearlyStats.sort((a, b) => b.month - a.month);
+  // Sort by year and month descending (newest first)
+  yearlyStats.sort((a, b) => {
+    if (a.year !== b.year) return b.year - a.year;
+    return b.month - a.month;
+  });
 
   res.json(yearlyStats);
 });
@@ -1013,20 +1089,43 @@ app.get('/api/monthly-archives/:month', async (req, res) => {
   }
 });
 
-// Auto-clean on every request (check if cleanup is needed)
-app.use(async (req, res, next) => {
-  // Only run cleanup check on GET requests to avoid running during data modifications
-  if (req.method === 'GET' && Math.random() < 0.1) { // 10% chance to check
-    try {
-      const result = await archiveAndCleanDatabase();
-      if (result.cleaned) {
-        console.log(`🔄 Auto-cleanup performed: ${result.deletedCompletions} completions removed`);
-      }
-    } catch (error) {
-      console.error('Auto-cleanup error:', error);
+// Note: Auto-cleanup is now handled reliably in GET /api/users endpoint
+// which runs once per day when users access the app
+
+// One-time migration endpoint to fix monthNumber values in archives
+app.post('/api/fix-archives', async (req, res) => {
+  try {
+    const data = await loadData();
+
+    if (!data.monthlyArchives || data.monthlyArchives.length === 0) {
+      return res.json({ success: true, message: 'No archives to fix' });
     }
+
+    let fixedCount = 0;
+    data.monthlyArchives.forEach(archive => {
+      // Extract correct month number from month string (e.g., "2025-09" -> 9)
+      const correctMonthNumber = parseInt(archive.month.split('-')[1], 10);
+      if (archive.monthNumber !== correctMonthNumber) {
+        console.log(`Fixing archive ${archive.month}: monthNumber ${archive.monthNumber} -> ${correctMonthNumber}`);
+        archive.monthNumber = correctMonthNumber;
+        fixedCount++;
+      }
+    });
+
+    if (fixedCount > 0) {
+      await saveData(data);
+    }
+
+    res.json({
+      success: true,
+      fixedCount,
+      message: `Fixed ${fixedCount} archive(s)`,
+      archives: data.monthlyArchives
+    });
+  } catch (error) {
+    console.error('Error fixing archives:', error);
+    res.status(500).json({ error: error.message });
   }
-  next();
 });
 
 // Export for Vercel serverless function
