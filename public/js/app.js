@@ -18,10 +18,15 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
     const savedUserId = localStorage.getItem('userId');
-    
-    users = await fetchUsers();
-    allTasks = await fetchTasks();
-    
+
+    // Parallel fetch for faster loading
+    const [fetchedUsers, fetchedTasks] = await Promise.all([
+        fetchUsers(),
+        fetchTasks()
+    ]);
+    users = fetchedUsers;
+    allTasks = fetchedTasks;
+
     if (savedUserId) {
         currentUser = users.find(u => u.id === parseInt(savedUserId));
         if (currentUser) {
@@ -33,7 +38,7 @@ async function init() {
     } else {
         showUserSelection();
     }
-    
+
     setupEventListeners();
     updateCurrentDate();
 }
