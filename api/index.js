@@ -446,21 +446,21 @@ app.get('/api/completions/:userId', async (req, res) => {
 app.post('/api/completions', async (req, res) => {
   try {
     const { userId, taskId, date, completed } = req.body;
-    
+
     // Validate input
     if (!userId || !taskId || !date || completed === undefined) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    
+
     console.log('Saving completion:', { userId, taskId, date, completed });
     const data = await loadData();
-    
+
     const week = getWeekNumber(new Date(date));
-    
-    const existingIndex = data.completions.findIndex(c => 
+
+    const existingIndex = data.completions.findIndex(c =>
       c.userId === userId && c.taskId === taskId && c.date === date
     );
-    
+
     if (existingIndex !== -1) {
       // Update existing completion
       data.completions[existingIndex].completed = completed;
@@ -478,20 +478,101 @@ app.post('/api/completions', async (req, res) => {
       });
       console.log('Created new completion');
     }
-    
+
+    // Check if this is a retroactive check-in for an archived month
+    const archiveUpdated = await updateArchiveForRetroactiveCheckin(data, userId, date, completed);
+    if (archiveUpdated) {
+      console.log('Archive updated for retroactive check-in');
+    }
+
     await saveData(data);
     console.log('Completion saved successfully');
-    
-    res.json({ 
+
+    res.json({
       success: true,
       message: 'Completion saved successfully',
-      completion: data.completions[existingIndex !== -1 ? existingIndex : data.completions.length - 1]
+      completion: data.completions[existingIndex !== -1 ? existingIndex : data.completions.length - 1],
+      archiveUpdated
     });
   } catch (error) {
     console.error('Error saving completion:', error);
     res.status(500).json({ error: 'Failed to save completion' });
   }
 });
+
+// Update archive when retroactive check-in happens
+async function updateArchiveForRetroactiveCheckin(data, userId, dateStr, completed) {
+  const completionDate = new Date(dateStr);
+  const now = new Date();
+
+  // Check if completion is for a past month (not current month)
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  if (completionDate >= currentMonthStart) {
+    return false; // Current month, no archive update needed
+  }
+
+  // Find the archive for this month
+  const archiveKey = `${completionDate.getFullYear()}-${String(completionDate.getMonth() + 1).padStart(2, '0')}`;
+  const archive = data.monthlyArchives?.find(a => a.month === archiveKey);
+
+  if (!archive) {
+    console.log(`No archive found for ${archiveKey}`);
+    return false;
+  }
+
+  // Find user's record in the archive
+  let userRecord = archive.userCompletionRatios.find(u => u.userId === userId);
+
+  if (!userRecord) {
+    // Create new user record if not exists
+    const user = data.users.find(u => u.id === userId);
+    const daysInMonth = new Date(completionDate.getFullYear(), completionDate.getMonth() + 1, 0).getDate();
+    userRecord = {
+      userId,
+      userName: user?.name || 'Unknown',
+      completedDays: 0,
+      completedDates: [],
+      totalDays: daysInMonth,
+      completionRatio: 0
+    };
+    archive.userCompletionRatios.push(userRecord);
+  }
+
+  // Ensure completedDates array exists (for legacy archives)
+  if (!userRecord.completedDates) {
+    userRecord.completedDates = [];
+  }
+  if (!userRecord.totalDays) {
+    userRecord.totalDays = new Date(completionDate.getFullYear(), completionDate.getMonth() + 1, 0).getDate();
+  }
+  if (userRecord.completedDays === undefined) {
+    userRecord.completedDays = userRecord.completedDates.length;
+  }
+
+  const dayNumber = completionDate.getDate();
+  const dayIndex = userRecord.completedDates.indexOf(dayNumber);
+
+  if (completed && dayIndex === -1) {
+    // Add day to completedDates
+    userRecord.completedDates.push(dayNumber);
+    userRecord.completedDates.sort((a, b) => a - b);
+    userRecord.completedDays = userRecord.completedDates.length;
+    console.log(`Added day ${dayNumber} to archive ${archiveKey} for user ${userId}`);
+  } else if (!completed && dayIndex !== -1) {
+    // Remove day from completedDates
+    userRecord.completedDates.splice(dayIndex, 1);
+    userRecord.completedDays = userRecord.completedDates.length;
+    console.log(`Removed day ${dayNumber} from archive ${archiveKey} for user ${userId}`);
+  } else {
+    // No change needed
+    return false;
+  }
+
+  // Recalculate completion ratio
+  userRecord.completionRatio = parseFloat(((userRecord.completedDays / userRecord.totalDays) * 100).toFixed(1));
+
+  return true;
+}
 
 // Database viewer endpoint - shows all data
 app.get('/api/database', async (req, res) => {
@@ -927,6 +1008,12 @@ function getWeekNumber(date) {
 
 // Calculate completion ratio for a user in a given date range
 function calculateCompletionRatio(completions, userId, startDate, endDate) {
+  const details = calculateCompletionDetails(completions, userId, startDate, endDate);
+  return details.completionRatio;
+}
+
+// Calculate detailed completion info for archiving
+function calculateCompletionDetails(completions, userId, startDate, endDate) {
   const userCompletions = completions.filter(c => {
     const completionDate = new Date(c.date);
     return c.userId === userId &&
@@ -935,17 +1022,32 @@ function calculateCompletionRatio(completions, userId, startDate, endDate) {
            completionDate <= endDate;
   });
 
-  if (userCompletions.length === 0) return 0;
-
-  // Calculate unique days where user completed at least one task
-  const uniqueCompletedDates = [...new Set(userCompletions.map(c => c.date))];
-  const completedDays = uniqueCompletedDates.length;
-
   // Calculate total days in the month
   const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-  // Return float with one decimal place
-  return parseFloat(((completedDays / totalDays) * 100).toFixed(1));
+  if (userCompletions.length === 0) {
+    return {
+      completedDays: 0,
+      completedDates: [],
+      totalDays,
+      completionRatio: 0
+    };
+  }
+
+  // Get unique completed dates and extract day numbers
+  const uniqueCompletedDates = [...new Set(userCompletions.map(c => c.date))];
+  const completedDates = uniqueCompletedDates.map(dateStr => new Date(dateStr).getDate()).sort((a, b) => a - b);
+  const completedDays = completedDates.length;
+
+  // Calculate ratio with one decimal place
+  const completionRatio = parseFloat(((completedDays / totalDays) * 100).toFixed(1));
+
+  return {
+    completedDays,
+    completedDates,
+    totalDays,
+    completionRatio
+  };
 }
 
 // Archive old month data and clean database
@@ -984,19 +1086,22 @@ async function archiveAndCleanDatabase() {
       archivedAt: new Date().toISOString()
     };
     
-    // Calculate completion ratios for each user
+    // Calculate completion details for each user
     data.users.forEach(user => {
-      const ratio = calculateCompletionRatio(
+      const details = calculateCompletionDetails(
         data.completions,
         user.id,
         prevMonthStart,
         prevMonthEnd
       );
-      
+
       monthlyArchive.userCompletionRatios.push({
         userId: user.id,
         userName: user.name,
-        completionRatio: ratio
+        completedDays: details.completedDays,
+        completedDates: details.completedDates,
+        totalDays: details.totalDays,
+        completionRatio: details.completionRatio
       });
     });
     
@@ -1148,6 +1253,64 @@ app.post('/api/fix-archives', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fixing archives:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Migration endpoint to add new fields (completedDates, completedDays, totalDays) to existing archives
+app.post('/api/migrate-archives', async (req, res) => {
+  try {
+    const data = await loadData();
+
+    if (!data.monthlyArchives || data.monthlyArchives.length === 0) {
+      return res.json({ success: true, message: 'No archives to migrate' });
+    }
+
+    let migratedCount = 0;
+    data.monthlyArchives.forEach(archive => {
+      const year = archive.year;
+      const monthNumber = archive.monthNumber;
+      const daysInMonth = new Date(year, monthNumber, 0).getDate();
+
+      archive.userCompletionRatios.forEach(userRecord => {
+        let needsMigration = false;
+
+        // Add totalDays if missing
+        if (userRecord.totalDays === undefined) {
+          userRecord.totalDays = daysInMonth;
+          needsMigration = true;
+        }
+
+        // Add completedDates if missing (empty array for legacy data)
+        if (userRecord.completedDates === undefined) {
+          userRecord.completedDates = [];
+          needsMigration = true;
+        }
+
+        // Add completedDays if missing (calculate from ratio for legacy data)
+        if (userRecord.completedDays === undefined) {
+          userRecord.completedDays = Math.round((userRecord.completionRatio / 100) * userRecord.totalDays);
+          needsMigration = true;
+        }
+
+        if (needsMigration) {
+          migratedCount++;
+        }
+      });
+    });
+
+    if (migratedCount > 0) {
+      await saveData(data);
+    }
+
+    res.json({
+      success: true,
+      migratedCount,
+      message: `Migrated ${migratedCount} user record(s)`,
+      archives: data.monthlyArchives
+    });
+  } catch (error) {
+    console.error('Error migrating archives:', error);
     res.status(500).json({ error: error.message });
   }
 });
