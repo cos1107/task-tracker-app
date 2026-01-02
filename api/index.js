@@ -1092,6 +1092,30 @@ app.get('/api/monthly-archives/:month', async (req, res) => {
 // Note: Auto-cleanup is now handled reliably in GET /api/users endpoint
 // which runs once per day when users access the app
 
+// Endpoint to set/replace all monthly archives (for data recovery)
+app.post('/api/set-archives', async (req, res) => {
+  try {
+    const { archives } = req.body;
+
+    if (!archives || !Array.isArray(archives)) {
+      return res.status(400).json({ error: 'archives array is required' });
+    }
+
+    const data = await loadData();
+    data.monthlyArchives = archives;
+    await saveData(data);
+
+    res.json({
+      success: true,
+      message: `Set ${archives.length} archive(s)`,
+      archives: data.monthlyArchives
+    });
+  } catch (error) {
+    console.error('Error setting archives:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // One-time migration endpoint to fix monthNumber values in archives
 app.post('/api/fix-archives', async (req, res) => {
   try {
