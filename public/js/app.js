@@ -18,15 +18,10 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
     const savedUserId = localStorage.getItem('userId');
-
-    // Parallel fetch for faster loading
-    const [fetchedUsers, fetchedTasks] = await Promise.all([
-        fetchUsers(),
-        fetchTasks()
-    ]);
-    users = fetchedUsers;
-    allTasks = fetchedTasks;
-
+    
+    users = await fetchUsers();
+    allTasks = await fetchTasks();
+    
     if (savedUserId) {
         currentUser = users.find(u => u.id === parseInt(savedUserId));
         if (currentUser) {
@@ -38,7 +33,7 @@ async function init() {
     } else {
         showUserSelection();
     }
-
+    
     setupEventListeners();
     updateCurrentDate();
 }
@@ -934,7 +929,47 @@ async function loadUserTaskManagement() {
     }
     
     let html = '';
-    
+
+    // User Management Section
+    html += `<div class="add-user-section">`;
+    html += `<div class="section-header">`;
+    html += `<h3>用戶管理</h3>`;
+    html += `</div>`;
+    html += `<div class="task-list">`;
+
+    if (users.length === 0) {
+        html += `<p style="color: #7f8c8d; font-style: italic;">尚無用戶</p>`;
+    } else {
+        users.forEach(user => {
+            const isSelf = currentUser && currentUser.id === user.id;
+            html += `<div class="user-management-item">`;
+            html += `<div class="task-info">`;
+            html += `<div class="task-name">${user.name}</div>`;
+            if (user.isAdmin) {
+                html += `<span class="admin-badge">管理員</span>`;
+            }
+            html += `</div>`;
+            html += `<div class="action-buttons">`;
+            html += `<button class="btn-edit" onclick="editUser(${user.id}, '${user.name.replace(/'/g, "\\'")}', ${!!user.isAdmin})">編輯</button>`;
+            if (!isSelf) {
+                html += `<button class="btn-delete" onclick="deleteUser(${user.id})">刪除</button>`;
+            }
+            html += `</div>`;
+            html += `</div>`;
+        });
+    }
+
+    html += `</div>`;
+
+    // Add new user form
+    html += `<div style="margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">`;
+    html += `<input type="text" id="new-user-name" placeholder="新用戶名稱" style="flex: 1; min-width: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">`;
+    html += `<label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="checkbox" id="new-user-admin"> 管理員</label>`;
+    html += `<button class="btn-add" onclick="addNewUser()">新增用戶</button>`;
+    html += `</div>`;
+
+    html += `</div>`;
+
     // Task Management Section
     html += `<div class="task-management-section">`;
     html += `<div class="section-header">`;
@@ -1206,6 +1241,10 @@ async function deleteTask(taskId) {
             alert('刪除任務失敗');
         }
     }
+}
+
+function loadUserManagement() {
+    loadUserTaskManagement();
 }
 
 async function addNewUser() {
