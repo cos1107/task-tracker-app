@@ -44,69 +44,33 @@ const MOTIVATION_MESSAGES = [
     '這不是偶爾運動，這叫開始有習慣了。'
 ];
 
-const MOTIVATION_SCENES = [
-    { name: 'fireworks',   emojis: ['🎆', '🎇', '✨'] },
-    { name: 'strongman',   emojis: ['💪', '🏋️', '🏆'] },
-    { name: 'dance',       emojis: ['💃', '🕺', '🎶'] },
-    { name: 'celebration', emojis: ['🎉', '🥳', '🎊'] },
-    { name: 'champion',    emojis: ['🏆', '⭐', '🥇'] },
-    { name: 'cheer',       emojis: ['🙌', '👏', '✨'] }
-];
-
 function pickRandomMessage(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function checkAndShowMotivation(taskId, dateStr) {
-    if (!currentUser) return;
-
+function checkAndShowMotivation(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task || task.name !== MOTIVATION_EXERCISE_TASK_NAME) return;
-
-    const flagKey = `motivation_shown_${currentUser.id}_${dateStr}`;
-    if (localStorage.getItem(flagKey)) return;
-
     showMotivationPopup(pickRandomMessage(MOTIVATION_MESSAGES));
-    localStorage.setItem(flagKey, '1');
 }
 
 function showMotivationPopup(message) {
     const existing = document.getElementById('motivation-popup');
     if (existing) existing.remove();
 
-    const scene = MOTIVATION_SCENES[Math.floor(Math.random() * MOTIVATION_SCENES.length)];
+    const host = document.getElementById('tasks-list') || document.body;
 
     const popup = document.createElement('div');
     popup.id = 'motivation-popup';
-    popup.className = `motivation-popup motivation-theme-${scene.name}`;
+    popup.className = 'motivation-popup';
     popup.setAttribute('role', 'dialog');
-    popup.setAttribute('aria-modal', 'false');
     popup.innerHTML = `
-        <button type="button" class="motivation-close-x" aria-label="關閉">×</button>
-        <div class="motivation-scene scene-${scene.name}" aria-hidden="true">
-            ${scene.emojis.map((e, i) => `<span class="scene-emoji emoji-${i + 1}">${e}</span>`).join('')}
-        </div>
+        <div class="motivation-icon" aria-hidden="true">💪</div>
         <div class="motivation-message"></div>
         <button type="button" class="motivation-close-btn">收到！</button>
     `;
     popup.querySelector('.motivation-message').textContent = message;
-    document.body.appendChild(popup);
-
-    const popupRect = popup.getBoundingClientRect();
-    const anchor = document.getElementById('tasks-list');
-    let cx, cy;
-    if (anchor) {
-        const a = anchor.getBoundingClientRect();
-        cx = a.left + a.width / 2;
-        cy = a.top + a.height / 2;
-    } else {
-        cx = window.innerWidth / 2;
-        cy = window.innerHeight / 2;
-    }
-    const left = Math.max(8, Math.min(window.innerWidth - popupRect.width - 8, cx - popupRect.width / 2));
-    const top = Math.max(8, Math.min(window.innerHeight - popupRect.height - 8, cy - popupRect.height / 2));
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
+    host.appendChild(popup);
 
     const close = () => {
         if (closeTimer) clearTimeout(closeTimer);
@@ -115,7 +79,6 @@ function showMotivationPopup(message) {
     };
 
     popup.querySelector('.motivation-close-btn').addEventListener('click', close);
-    popup.querySelector('.motivation-close-x').addEventListener('click', close);
 
     const closeTimer = setTimeout(close, 6000);
 }
@@ -576,7 +539,7 @@ async function toggleTask(taskId, date, completed) {
         }
 
         if (completed) {
-            checkAndShowMotivation(taskId, date);
+            checkAndShowMotivation(taskId);
         }
     } catch (error) {
         console.error('Error toggling task:', error);
