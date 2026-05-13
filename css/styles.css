@@ -1973,7 +1973,7 @@ h1 {
 .motivation-popup {
     position: absolute;
     top: 64%;
-    left: 8%;
+    left: 24px;
     transform: translateY(-50%);
     z-index: 50;
     width: clamp(260px, 42%, 560px);
