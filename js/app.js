@@ -16,7 +16,7 @@ function getLocalDateString(date = new Date()) {
 
 const MOTIVATION_EXERCISE_TASK_NAME = '每日運動';
 
-const MOTIVATION_COMEBACK_MESSAGES = [
+const MOTIVATION_MESSAGES = [
     '肌肉：你終於想到我了？',
     '久違的運動，差點以為彼此分手了。',
     '能爬起來運動，已經贏一半。',
@@ -26,10 +26,7 @@ const MOTIVATION_COMEBACK_MESSAGES = [
     '今天不是來變強，是先證明自己還活著。',
     '消失幾天沒關係，回來就算自己人。',
     '肌肉目前狀態：陌生但欣慰。',
-    '運動五分鐘，喘得像失散多年後重逢。'
-];
-
-const MOTIVATION_STREAK_MESSAGES = [
+    '運動五分鐘，喘得像失散多年後重逢。',
     '連兩天運動，我開始懷疑你被盜帳號。',
     '忙成這樣還運動？有點帥。',
     '第二天還有出現，事情不單純。',
@@ -47,18 +44,11 @@ const MOTIVATION_STREAK_MESSAGES = [
     '這不是偶爾運動，這叫開始有習慣了。'
 ];
 
-function addDaysToDateStr(dateStr, delta) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const dt = new Date(y, m - 1, d);
-    dt.setDate(dt.getDate() + delta);
-    return getLocalDateString(dt);
-}
-
 function pickRandomMessage(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-async function checkAndShowMotivation(taskId, dateStr) {
+function checkAndShowMotivation(taskId, dateStr) {
     if (!currentUser) return;
 
     const task = tasks.find(t => t.id === taskId);
@@ -67,33 +57,8 @@ async function checkAndShowMotivation(taskId, dateStr) {
     const flagKey = `motivation_shown_${currentUser.id}_${dateStr}`;
     if (localStorage.getItem(flagKey)) return;
 
-    const completions = await fetchCompletions(currentUser.id);
-    const exerciseDays = new Set(
-        completions
-            .filter(c => c.taskId === taskId && c.completed)
-            .map(c => c.date)
-    );
-
-    if (!exerciseDays.has(dateStr)) return;
-
-    const prev1 = addDaysToDateStr(dateStr, -1);
-    const prev2 = addDaysToDateStr(dateStr, -2);
-
-    let message = null;
-
-    if (exerciseDays.has(prev1)) {
-        message = pickRandomMessage(MOTIVATION_STREAK_MESSAGES);
-    } else if (!exerciseDays.has(prev2)) {
-        const hasEarlierHistory = [...exerciseDays].some(d => d < prev2);
-        if (hasEarlierHistory) {
-            message = pickRandomMessage(MOTIVATION_COMEBACK_MESSAGES);
-        }
-    }
-
-    if (message) {
-        showMotivationPopup(message);
-        localStorage.setItem(flagKey, '1');
-    }
+    showMotivationPopup(pickRandomMessage(MOTIVATION_MESSAGES));
+    localStorage.setItem(flagKey, '1');
 }
 
 function showMotivationPopup(message) {
