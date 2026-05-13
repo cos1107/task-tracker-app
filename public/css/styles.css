@@ -1967,3 +1967,93 @@ h1 {
     }
 }
 }
+
+.motivation-popup {
+    position: fixed;
+    z-index: 2000;
+    background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+    color: #2d3436;
+    padding: 26px 24px 20px;
+    border-radius: 18px;
+    width: min(340px, calc(100vw - 32px));
+    text-align: center;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255,255,255,0.4) inset;
+    animation: motivation-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.motivation-popup.motivation-leaving {
+    animation: motivation-fade-out 0.2s ease forwards;
+}
+
+@keyframes motivation-pop {
+    0%   { transform: scale(0.55); opacity: 0; }
+    100% { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes motivation-fade-out {
+    from { opacity: 1; transform: scale(1);    }
+    to   { opacity: 0; transform: scale(0.95); }
+}
+
+.motivation-icon {
+    font-size: 68px;
+    line-height: 1;
+    margin: 0 auto 10px;
+    display: inline-block;
+    animation: motivation-flex 0.7s ease-in-out 0.25s 2;
+    transform-origin: 50% 70%;
+}
+
+@keyframes motivation-flex {
+    0%, 100% { transform: rotate(-8deg) scale(1); }
+    50%      { transform: rotate(10deg) scale(1.18); }
+}
+
+.motivation-message {
+    font-size: 18px;
+    line-height: 1.55;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: #2d3436;
+}
+
+.motivation-close-btn {
+    background: #2d3436;
+    color: #fff;
+    border: none;
+    padding: 9px 28px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.motivation-close-btn:hover {
+    background: #000;
+    transform: translateY(-1px);
+}
+
+.motivation-close-btn:active {
+    transform: translateY(0);
+}
+
+.motivation-close-x {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #2d3436;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+}
+
+.motivation-close-x:hover {
+    opacity: 1;
+}

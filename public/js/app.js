@@ -14,6 +14,134 @@ function getLocalDateString(date = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
+const MOTIVATION_EXERCISE_TASK_NAME = '每日運動';
+
+const MOTIVATION_COMEBACK_MESSAGES = [
+    '肌肉：你終於想到我了？',
+    '久違的運動，差點以為彼此分手了。',
+    '能爬起來運動，已經贏一半。',
+    '肌肉：原來這個帳號還有在更新。',
+    '身體痠歸痠，至少重新開機了。',
+    '肌肉：我還以為你搬家了。',
+    '今天不是來變強，是先證明自己還活著。',
+    '消失幾天沒關係，回來就算自己人。',
+    '肌肉目前狀態：陌生但欣慰。',
+    '運動五分鐘，喘得像失散多年後重逢。'
+];
+
+const MOTIVATION_STREAK_MESSAGES = [
+    '連兩天運動，我開始懷疑你被盜帳號。',
+    '忙成這樣還運動？有點帥。',
+    '第二天還有出現，事情不單純。',
+    '這不是運動，是人格升級。',
+    '肌肉目前感動到想發限動。',
+    '連兩天運動，朋友圈準備見證奇蹟。',
+    '第二天還有來，這次好像是認真的。',
+    '肌肉：欸？今天也有？',
+    '運動第二天最難，你居然過關了。',
+    '教練看到你連兩天出現，眼神都變溫柔了。',
+    '原來「沒時間」也是可以被打敗的。',
+    '今天不是靠熱血，是靠責任感。',
+    '忙歸忙，你沒放生自己的健康。',
+    '第二天還能出現，代表昨天不是幻覺。',
+    '這不是偶爾運動，這叫開始有習慣了。'
+];
+
+function addDaysToDateStr(dateStr, delta) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + delta);
+    return getLocalDateString(dt);
+}
+
+function pickRandomMessage(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+async function checkAndShowMotivation(taskId, dateStr) {
+    if (!currentUser) return;
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.name !== MOTIVATION_EXERCISE_TASK_NAME) return;
+
+    const flagKey = `motivation_shown_${currentUser.id}_${dateStr}`;
+    if (localStorage.getItem(flagKey)) return;
+
+    const completions = await fetchCompletions(currentUser.id);
+    const exerciseDays = new Set(
+        completions
+            .filter(c => c.taskId === taskId && c.completed)
+            .map(c => c.date)
+    );
+
+    if (!exerciseDays.has(dateStr)) return;
+
+    const prev1 = addDaysToDateStr(dateStr, -1);
+    const prev2 = addDaysToDateStr(dateStr, -2);
+
+    let message = null;
+
+    if (exerciseDays.has(prev1)) {
+        message = pickRandomMessage(MOTIVATION_STREAK_MESSAGES);
+    } else if (!exerciseDays.has(prev2)) {
+        const hasEarlierHistory = [...exerciseDays].some(d => d < prev2);
+        if (hasEarlierHistory) {
+            message = pickRandomMessage(MOTIVATION_COMEBACK_MESSAGES);
+        }
+    }
+
+    if (message) {
+        showMotivationPopup(message);
+        localStorage.setItem(flagKey, '1');
+    }
+}
+
+function showMotivationPopup(message) {
+    const existing = document.getElementById('motivation-popup');
+    if (existing) existing.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'motivation-popup';
+    popup.className = 'motivation-popup';
+    popup.setAttribute('role', 'dialog');
+    popup.setAttribute('aria-modal', 'false');
+    popup.innerHTML = `
+        <button type="button" class="motivation-close-x" aria-label="關閉">×</button>
+        <div class="motivation-icon" aria-hidden="true">💪</div>
+        <div class="motivation-message"></div>
+        <button type="button" class="motivation-close-btn">收到！</button>
+    `;
+    popup.querySelector('.motivation-message').textContent = message;
+    document.body.appendChild(popup);
+
+    const anchor = document.getElementById('tasks-list');
+    if (anchor) {
+        const anchorRect = anchor.getBoundingClientRect();
+        const popupRect = popup.getBoundingClientRect();
+        const cx = anchorRect.left + anchorRect.width / 2;
+        const cy = anchorRect.top + Math.min(anchorRect.height / 2, 140);
+        const left = Math.max(8, Math.min(window.innerWidth - popupRect.width - 8, cx - popupRect.width / 2));
+        const top = Math.max(8, Math.min(window.innerHeight - popupRect.height - 8, cy - popupRect.height / 2));
+        popup.style.left = left + 'px';
+        popup.style.top = top + 'px';
+    } else {
+        popup.style.left = '50%';
+        popup.style.top = '50%';
+        popup.style.transform = 'translate(-50%, -50%)';
+    }
+
+    const close = () => {
+        if (closeTimer) clearTimeout(closeTimer);
+        popup.classList.add('motivation-leaving');
+        setTimeout(() => popup.remove(), 200);
+    };
+
+    popup.querySelector('.motivation-close-btn').addEventListener('click', close);
+    popup.querySelector('.motivation-close-x').addEventListener('click', close);
+
+    const closeTimer = setTimeout(close, 6000);
+}
+
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
@@ -467,6 +595,10 @@ async function toggleTask(taskId, date, completed) {
             setTimeout(() => {
                 taskCheckbox.parentElement.classList.remove('saved');
             }, 1000);
+        }
+
+        if (completed) {
+            checkAndShowMotivation(taskId, date);
         }
     } catch (error) {
         console.error('Error toggling task:', error);
