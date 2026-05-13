@@ -114,21 +114,9 @@ function showMotivationPopup(message) {
     popup.querySelector('.motivation-message').textContent = message;
     document.body.appendChild(popup);
 
-    const anchor = document.getElementById('tasks-list');
-    if (anchor) {
-        const anchorRect = anchor.getBoundingClientRect();
-        const popupRect = popup.getBoundingClientRect();
-        const cx = anchorRect.left + anchorRect.width / 2;
-        const cy = anchorRect.top + Math.min(anchorRect.height / 2, 140);
-        const left = Math.max(8, Math.min(window.innerWidth - popupRect.width - 8, cx - popupRect.width / 2));
-        const top = Math.max(8, Math.min(window.innerHeight - popupRect.height - 8, cy - popupRect.height / 2));
-        popup.style.left = left + 'px';
-        popup.style.top = top + 'px';
-    } else {
-        popup.style.left = '50%';
-        popup.style.top = '50%';
-        popup.style.transform = 'translate(-50%, -50%)';
-    }
+    const popupRect = popup.getBoundingClientRect();
+    popup.style.left = Math.max(8, (window.innerWidth - popupRect.width) / 2) + 'px';
+    popup.style.top = Math.max(8, (window.innerHeight - popupRect.height) / 2) + 'px';
 
     const close = () => {
         if (closeTimer) clearTimeout(closeTimer);
