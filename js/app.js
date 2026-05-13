@@ -44,6 +44,15 @@ const MOTIVATION_MESSAGES = [
     '這不是偶爾運動，這叫開始有習慣了。'
 ];
 
+const MOTIVATION_SCENES = [
+    { name: 'fireworks',   emojis: ['🎆', '🎇', '✨'] },
+    { name: 'strongman',   emojis: ['💪', '🏋️', '🏆'] },
+    { name: 'dance',       emojis: ['💃', '🕺', '🎶'] },
+    { name: 'celebration', emojis: ['🎉', '🥳', '🎊'] },
+    { name: 'champion',    emojis: ['🏆', '⭐', '🥇'] },
+    { name: 'cheer',       emojis: ['🙌', '👏', '✨'] }
+];
+
 function pickRandomMessage(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -65,14 +74,18 @@ function showMotivationPopup(message) {
     const existing = document.getElementById('motivation-popup');
     if (existing) existing.remove();
 
+    const scene = MOTIVATION_SCENES[Math.floor(Math.random() * MOTIVATION_SCENES.length)];
+
     const popup = document.createElement('div');
     popup.id = 'motivation-popup';
-    popup.className = 'motivation-popup';
+    popup.className = `motivation-popup motivation-theme-${scene.name}`;
     popup.setAttribute('role', 'dialog');
     popup.setAttribute('aria-modal', 'false');
     popup.innerHTML = `
         <button type="button" class="motivation-close-x" aria-label="關閉">×</button>
-        <div class="motivation-icon" aria-hidden="true">💪</div>
+        <div class="motivation-scene scene-${scene.name}" aria-hidden="true">
+            ${scene.emojis.map((e, i) => `<span class="scene-emoji emoji-${i + 1}">${e}</span>`).join('')}
+        </div>
         <div class="motivation-message"></div>
         <button type="button" class="motivation-close-btn">收到！</button>
     `;

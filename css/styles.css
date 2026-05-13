@@ -1995,18 +1995,92 @@ h1 {
     to   { opacity: 0; transform: scale(0.95); }
 }
 
-.motivation-icon {
-    font-size: 68px;
+.motivation-scene {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    height: 90px;
+    margin: 4px auto 12px;
+    font-size: 56px;
     line-height: 1;
-    margin: 0 auto 10px;
-    display: inline-block;
-    animation: motivation-flex 0.7s ease-in-out 0.25s 2;
-    transform-origin: 50% 70%;
 }
 
-@keyframes motivation-flex {
-    0%, 100% { transform: rotate(-8deg) scale(1); }
-    50%      { transform: rotate(10deg) scale(1.18); }
+.scene-emoji {
+    display: inline-block;
+    transform-origin: 50% 70%;
+    will-change: transform, opacity;
+}
+
+/* === Theme backgrounds === */
+.motivation-theme-fireworks   { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #ff6b9d 100%); color: #fff; }
+.motivation-theme-strongman   { background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%); color: #2d3436; }
+.motivation-theme-dance       { background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 50%, #fbc2eb 100%); color: #2d3436; }
+.motivation-theme-celebration { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: #2d3436; }
+.motivation-theme-champion    { background: linear-gradient(135deg, #ffe259 0%, #ffa751 100%); color: #2d3436; }
+.motivation-theme-cheer       { background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); color: #2d3436; }
+
+.motivation-theme-fireworks .motivation-message { color: #fff; }
+.motivation-theme-fireworks .motivation-close-x { color: #fff; }
+.motivation-theme-fireworks .motivation-close-btn { background: #fff; color: #1e3c72; }
+.motivation-theme-fireworks .motivation-close-btn:hover { background: #f0f0f0; }
+
+/* === Strongman: flex pump === */
+.scene-strongman .scene-emoji { animation: scene-flex 0.7s ease-in-out infinite alternate; }
+.scene-strongman .emoji-2 { animation-delay: 0.15s; }
+.scene-strongman .emoji-3 { animation-delay: 0.3s; }
+@keyframes scene-flex {
+    from { transform: rotate(-10deg) scale(1);    }
+    to   { transform: rotate(10deg)  scale(1.18); }
+}
+
+/* === Fireworks: rise and sparkle === */
+.scene-fireworks .scene-emoji { animation: scene-firework 1.2s ease-out infinite; }
+.scene-fireworks .emoji-2 { animation-delay: 0.35s; }
+.scene-fireworks .emoji-3 { animation-delay: 0.7s; }
+@keyframes scene-firework {
+    0%   { transform: translateY(18px) scale(0.5); opacity: 0; }
+    25%  { opacity: 1; }
+    70%  { transform: translateY(-12px) scale(1.25); opacity: 1; }
+    100% { transform: translateY(-22px) scale(0.9); opacity: 0; }
+}
+
+/* === Dance: sway side to side === */
+.scene-dance .scene-emoji { animation: scene-sway 0.55s ease-in-out infinite alternate; }
+.scene-dance .emoji-2 { animation-direction: alternate-reverse; }
+.scene-dance .emoji-3 { animation-delay: 0.1s; }
+@keyframes scene-sway {
+    from { transform: translateX(-9px) rotate(-15deg); }
+    to   { transform: translateX(9px)  rotate(15deg);  }
+}
+
+/* === Celebration: bounce === */
+.scene-celebration .scene-emoji { animation: scene-bounce 0.55s ease-out infinite; }
+.scene-celebration .emoji-2 { animation-delay: 0.12s; }
+.scene-celebration .emoji-3 { animation-delay: 0.24s; }
+@keyframes scene-bounce {
+    0%, 100% { transform: translateY(0)     scale(1);   }
+    40%      { transform: translateY(-22px) scale(1.1); }
+    60%      { transform: translateY(-22px) scale(1.1); }
+}
+
+/* === Champion: gentle rotate + scale === */
+.scene-champion .scene-emoji { animation: scene-spin 2s ease-in-out infinite; }
+.scene-champion .emoji-2 { animation-delay: -0.5s; }
+.scene-champion .emoji-3 { animation-delay: -1s; }
+@keyframes scene-spin {
+    0%, 100% { transform: rotate(0deg)   scale(1);    }
+    25%      { transform: rotate(-12deg) scale(1.12); }
+    75%      { transform: rotate(12deg)  scale(1.12); }
+}
+
+/* === Cheer: hands up wave === */
+.scene-cheer .scene-emoji { animation: scene-cheer 0.6s ease-in-out infinite alternate; }
+.scene-cheer .emoji-2 { animation-delay: 0.15s; }
+.scene-cheer .emoji-3 { animation-delay: 0.3s; }
+@keyframes scene-cheer {
+    from { transform: translateY(0)     rotate(-8deg); }
+    to   { transform: translateY(-12px) rotate(8deg);  }
 }
 
 .motivation-message {
