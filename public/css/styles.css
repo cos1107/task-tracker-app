@@ -1972,12 +1972,11 @@ h1 {
 
 .motivation-popup {
     position: absolute;
-    top: 64%;
+    top: 50%;
     left: 24px;
     transform: translateY(-50%);
     z-index: 50;
     width: clamp(260px, 42%, 560px);
-    max-height: 80%;
     background: #c8ebd0;
     color: #1f3a24;
     border-radius: 14px;
